@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Lock, User, AlertCircle, CheckCircle } from "lucide-react";
+import Iridescence from "@/components/ui/Iridescence";
 
 // Valid login combinations
 const VALID_COMBINATIONS = [
@@ -129,20 +130,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#93E1D8]/20 via-white to-[#FFA69E]/20 flex items-center justify-center p-4">
-      {/* Background Video */}
+      {/* Iridescence Background */}
       <div className="fixed inset-0 z-0">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="h-full w-full object-cover opacity-30"
-        >
-          <source 
-            src="/videos/login-background.mp4" 
-            type="video/mp4" 
-          />
-        </video>
+        <Iridescence
+          color={[0.58, 0.88, 0.85]}
+          mouseReact={false}
+          amplitude={0.1}
+          speed={1.0}
+        />
         <div className="absolute inset-0 bg-white/60"></div>
       </div>
 
