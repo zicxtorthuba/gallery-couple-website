@@ -56,7 +56,7 @@ function PersonalContent() {
         name: currentUser.name,
         profilePicture: null
       });
-      setProfilePicturePreview(currentUser.picture || stats.profilePicture);
+      setProfilePicturePreview(currentUser.image || stats.profilePicture);
     }
   }, []);
 
@@ -79,7 +79,7 @@ function PersonalContent() {
     const updatedUser = { 
       ...user, 
       name: editData.name,
-      picture: profilePicturePreview || user.picture
+      image: profilePicturePreview || user.image
     };
     updateStoredUser(updatedUser);
     setUser(updatedUser);
@@ -100,7 +100,7 @@ function PersonalContent() {
         name: user.name,
         profilePicture: null
       });
-      setProfilePicturePreview(user.picture || userStats?.profilePicture || null);
+      setProfilePicturePreview(user.image || userStats?.profilePicture || null);
     }
     setIsEditingProfile(false);
   };
@@ -197,7 +197,7 @@ function PersonalContent() {
                     </h1>
                     <p className="text-muted-foreground flex items-center gap-2">
                       <Mail className="h-4 w-4" />
-                      {user.email || 'Chưa có email'}
+                      {user.email}
                     </p>
                     <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
@@ -440,7 +440,7 @@ function PersonalContent() {
                           <p className="font-medium">{user.name}</p>
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Mail className="h-3 w-3" />
-                            {user.email || 'Chưa có email'}
+                            {user.email}
                           </p>
                           <Badge variant="secondary" className="mt-1 capitalize">
                             {user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}

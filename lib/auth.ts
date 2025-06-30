@@ -1,9 +1,9 @@
 export interface User {
-  code: string;
+  id: string;
   name: string;
-  role: string;
-  email?: string;
-  picture?: string;
+  email: string;
+  image?: string;
+  role?: string;
 }
 
 export const getStoredUser = (): User | null => {

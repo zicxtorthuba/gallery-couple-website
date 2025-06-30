@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -73,8 +72,8 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    {user.picture ? (
-                      <AvatarImage src={user.picture} alt={user.name} />
+                    {user.image ? (
+                      <AvatarImage src={user.image} alt={user.name} />
                     ) : (
                       <AvatarFallback className="bg-[#93E1D8] text-white">
                         {user.name[0].toUpperCase()}
@@ -88,7 +87,7 @@ export function Navbar() {
                   <div className="flex flex-col space-y-1 leading-none">
                     <p className="font-medium">{user.name}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {user.email || (user.role === 'admin' ? 'Quản trị viên' : 'Người dùng')}
+                      {user.email}
                     </p>
                   </div>
                 </div>
