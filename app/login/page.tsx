@@ -1,4 +1,4 @@
-import { signIn } from "@/auth"
+import { signInWithGoogle } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail } from "lucide-react"
@@ -21,13 +21,8 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {/* Google Sign In Form - Exactly as specified */}
-            <form
-              action={async () => {
-                "use server"
-                await signIn("google")
-              }}
-            >
+            {/* Google Sign In Form - Using dedicated server action */}
+            <form action={signInWithGoogle}>
               <button 
                 type="submit"
                 className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-3 px-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-3"
