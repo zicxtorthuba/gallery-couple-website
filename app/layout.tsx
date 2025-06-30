@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter, Cormorant_Garamond } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
+import { EdgeStoreProvider } from '@/lib/edgestore';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -36,8 +37,10 @@ export default function RootLayout({
           defaultTheme="light"
           enableSystem={false}
         >
-          {children}
-          <Toaster />
+          <EdgeStoreProvider>
+            {children}
+            <Toaster />
+          </EdgeStoreProvider>
         </ThemeProvider>
       </body>
     </html>
