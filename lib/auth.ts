@@ -2,6 +2,8 @@ export interface User {
   code: string;
   name: string;
   role: string;
+  email?: string;
+  picture?: string;
 }
 
 export const getStoredUser = (): User | null => {

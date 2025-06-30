@@ -24,7 +24,8 @@ import {
   Edit3,
   Save,
   X,
-  CheckCircle
+  CheckCircle,
+  Mail
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -55,7 +56,7 @@ function PersonalContent() {
         name: currentUser.name,
         profilePicture: null
       });
-      setProfilePicturePreview(stats.profilePicture);
+      setProfilePicturePreview(currentUser.picture || stats.profilePicture);
     }
   }, []);
 
@@ -74,8 +75,12 @@ function PersonalContent() {
   const handleSaveProfile = () => {
     if (!user || !userStats) return;
 
-    // Update user name
-    const updatedUser = { ...user, name: editData.name };
+    // Update user name and picture
+    const updatedUser = { 
+      ...user, 
+      name: editData.name,
+      picture: profilePicturePreview || user.picture
+    };
     updateStoredUser(updatedUser);
     setUser(updatedUser);
 
@@ -95,7 +100,7 @@ function PersonalContent() {
         name: user.name,
         profilePicture: null
       });
-      setProfilePicturePreview(userStats?.profilePicture || null);
+      setProfilePicturePreview(user.picture || userStats?.profilePicture || null);
     }
     setIsEditingProfile(false);
   };
@@ -190,14 +195,18 @@ function PersonalContent() {
                     <h1 className="font-cormorant text-3xl font-light mb-2">
                       {user.name}
                     </h1>
-                    <p className="text-muted-foreground">
-                      {user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
+                    <p className="text-muted-foreground flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      {user.email || 'Chưa có email'}
                     </p>
                     <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
                         <span>Tham gia từ tháng 1, 2024</span>
                       </div>
+                      <Badge variant="secondary" className="capitalize">
+                        {user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
+                      </Badge>
                     </div>
                   </>
                 )}
@@ -429,9 +438,13 @@ function PersonalContent() {
                         </Avatar>
                         <div className="flex-1">
                           <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <Mail className="h-3 w-3" />
+                            {user.email || 'Chưa có email'}
                           </p>
+                          <Badge variant="secondary" className="mt-1 capitalize">
+                            {user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
+                          </Badge>
                         </div>
                         <Button
                           onClick={() => setIsEditingProfile(true)}
