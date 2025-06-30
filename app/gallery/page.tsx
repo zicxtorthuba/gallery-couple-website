@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Heart, 
   Search, 
@@ -25,12 +27,16 @@ import {
   Trash2,
   Tag,
   Camera,
-  ImageIcon
+  ImageIcon,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { galleryImages } from '@/lib/data';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { AuthGuard } from '@/components/AuthGuard';
+import { useEdgeStore } from '@/lib/edgestore';
 
 interface GalleryImage {
   id: string;
@@ -56,6 +62,9 @@ function GalleryContent() {
   const [favoriteImages, setFavoriteImages] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadMessage, setUploadMessage] = useState('');
   const [uploadData, setUploadData] = useState({
     title: '',
     description: '',
@@ -68,6 +77,8 @@ function GalleryContent() {
     description: '',
     tags: ''
   });
+
+  const { edgestore } = useEdgeStore();
 
   useEffect(() => {
     setImages(galleryImages);
@@ -146,30 +157,63 @@ function GalleryContent() {
     }
   };
 
-  const handleUpload = () => {
-    if (!uploadData.file || !uploadData.title) return;
+  const handleUpload = async () => {
+    if (!uploadData.file || !uploadData.title) {
+      setUploadStatus('error');
+      setUploadMessage('Vui lòng chọn file và nhập tiêu đề');
+      return;
+    }
 
-    const newImage: GalleryImage = {
-      id: `upload-${Date.now()}`,
-      url: URL.createObjectURL(uploadData.file),
-      title: uploadData.title,
-      description: uploadData.description,
-      category: uploadData.category || 'uncategorized',
-      tags: uploadData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-      likes: 0,
-      author: 'current-user',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
+    try {
+      setUploadStatus('uploading');
+      setUploadProgress(0);
+      setUploadMessage('Đang tải lên...');
 
-    setImages(prev => [newImage, ...prev]);
-    setUploadData({
-      title: '',
-      description: '',
-      category: '',
-      tags: '',
-      file: null
-    });
-    setShowUploadDialog(false);
+      const res = await edgestore.publicFiles.upload({
+        file: uploadData.file,
+        onProgressChange: (progress) => {
+          setUploadProgress(progress);
+        },
+      });
+
+      const newImage: GalleryImage = {
+        id: `upload-${Date.now()}`,
+        url: res.url,
+        title: uploadData.title,
+        description: uploadData.description,
+        category: uploadData.category || 'uncategorized',
+        tags: uploadData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        likes: 0,
+        author: 'current-user',
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+
+      setImages(prev => [newImage, ...prev]);
+      setUploadStatus('success');
+      setUploadMessage('Tải lên thành công!');
+      
+      // Reset form
+      setUploadData({
+        title: '',
+        description: '',
+        category: '',
+        tags: '',
+        file: null
+      });
+
+      // Close dialog after 2 seconds
+      setTimeout(() => {
+        setShowUploadDialog(false);
+        setUploadStatus('idle');
+        setUploadProgress(0);
+        setUploadMessage('');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadStatus('error');
+      setUploadMessage('Tải lên thất bại. Vui lòng thử lại.');
+    }
   };
 
   const handleEdit = (image: GalleryImage) => {
@@ -199,9 +243,49 @@ function GalleryContent() {
     setEditData({ title: '', description: '', tags: '' });
   };
 
-  const handleDelete = (imageId: string) => {
-    setImages(prev => prev.filter(img => img.id !== imageId));
-    setSelectedImage(null);
+  const handleDelete = async (image: GalleryImage) => {
+    try {
+      // Delete from EdgeStore if it's an uploaded image
+      if (image.url.includes('edgestore')) {
+        await edgestore.publicFiles.delete({
+          url: image.url,
+        });
+      }
+
+      // Remove from local state
+      setImages(prev => prev.filter(img => img.id !== image.id));
+      setSelectedImage(null);
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
+  };
+
+  const handleReplace = async (image: GalleryImage, newFile: File) => {
+    try {
+      setLoading(true);
+
+      const res = await edgestore.publicFiles.upload({
+        file: newFile,
+        options: {
+          replaceTargetUrl: image.url,
+        },
+        onProgressChange: (progress) => {
+          console.log('Replace progress:', progress);
+        },
+      });
+
+      // Update the image URL in local state
+      setImages(prev => prev.map(img =>
+        img.id === image.id
+          ? { ...img, url: res.url }
+          : img
+      ));
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Replace failed:', error);
+      setLoading(false);
+    }
   };
 
   const handleTagClick = (tag: string) => {
@@ -246,99 +330,156 @@ function GalleryContent() {
                     Tải ảnh lên
                   </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="upload-file">Chọn ảnh</Label>
-                    <Input
-                      id="upload-file"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setUploadData(prev => ({ 
-                        ...prev, 
-                        file: e.target.files?.[0] || null 
-                      }))}
-                      className="mt-1"
-                    />
+                
+                {uploadStatus === 'success' ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-green-700 mb-2">
+                      Tải lên thành công!
+                    </h3>
+                    <p className="text-sm text-green-600">
+                      Ảnh của bạn đã được thêm vào thư viện
+                    </p>
                   </div>
-                  <div>
-                    <Label htmlFor="upload-title">Tiêu đề *</Label>
-                    <Input
-                      id="upload-title"
-                      value={uploadData.title}
-                      onChange={(e) => setUploadData(prev => ({ 
-                        ...prev, 
-                        title: e.target.value 
-                      }))}
-                      placeholder="Nhập tiêu đề ảnh"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="upload-description">Mô tả</Label>
-                    <Textarea
-                      id="upload-description"
-                      value={uploadData.description}
-                      onChange={(e) => setUploadData(prev => ({ 
-                        ...prev, 
-                        description: e.target.value 
-                      }))}
-                      placeholder="Mô tả về bức ảnh..."
-                      className="mt-1"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="upload-category">Danh mục</Label>
-                    <Select 
-                      value={uploadData.category} 
-                      onValueChange={(value) => setUploadData(prev => ({ 
-                        ...prev, 
-                        category: value 
-                      }))}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Chọn danh mục" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="couples">Couples</SelectItem>
-                        <SelectItem value="nature">Nature</SelectItem>
-                        <SelectItem value="urban">Urban</SelectItem>
-                        <SelectItem value="lifestyle">Lifestyle</SelectItem>
-                        <SelectItem value="adventure">Adventure</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="upload-tags">Thẻ (phân cách bằng dấu phẩy)</Label>
-                    <Input
-                      id="upload-tags"
-                      value={uploadData.tags}
-                      onChange={(e) => setUploadData(prev => ({ 
-                        ...prev, 
-                        tags: e.target.value 
-                      }))}
-                      placeholder="ví dụ: sunset, romance, outdoor"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-4">
+                ) : uploadStatus === 'error' ? (
+                  <div className="space-y-4">
+                    <Alert className="border-red-200 bg-red-50">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      <AlertDescription className="text-red-700">
+                        {uploadMessage}
+                      </AlertDescription>
+                    </Alert>
                     <Button 
-                      onClick={handleUpload}
-                      disabled={!uploadData.file || !uploadData.title}
-                      className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+                      onClick={() => {
+                        setUploadStatus('idle');
+                        setUploadMessage('');
+                      }}
+                      variant="outline"
+                      className="w-full"
                     >
-                      <Camera className="h-4 w-4 mr-2" />
-                      Tải lên
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowUploadDialog(false)}
-                      className="flex-1"
-                    >
-                      Hủy
+                      Thử lại
                     </Button>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-4">
+                    {uploadStatus === 'uploading' && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Đang tải lên...</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <Progress value={uploadProgress} className="h-2" />
+                      </div>
+                    )}
+                    
+                    <div>
+                      <Label htmlFor="upload-file">Chọn ảnh</Label>
+                      <Input
+                        id="upload-file"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setUploadData(prev => ({ 
+                          ...prev, 
+                          file: e.target.files?.[0] || null 
+                        }))}
+                        className="mt-1"
+                        disabled={uploadStatus === 'uploading'}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="upload-title">Tiêu đề *</Label>
+                      <Input
+                        id="upload-title"
+                        value={uploadData.title}
+                        onChange={(e) => setUploadData(prev => ({ 
+                          ...prev, 
+                          title: e.target.value 
+                        }))}
+                        placeholder="Nhập tiêu đề ảnh"
+                        className="mt-1"
+                        disabled={uploadStatus === 'uploading'}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="upload-description">Mô tả</Label>
+                      <Textarea
+                        id="upload-description"
+                        value={uploadData.description}
+                        onChange={(e) => setUploadData(prev => ({ 
+                          ...prev, 
+                          description: e.target.value 
+                        }))}
+                        placeholder="Mô tả về bức ảnh..."
+                        className="mt-1"
+                        rows={3}
+                        disabled={uploadStatus === 'uploading'}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="upload-category">Danh mục</Label>
+                      <Select 
+                        value={uploadData.category} 
+                        onValueChange={(value) => setUploadData(prev => ({ 
+                          ...prev, 
+                          category: value 
+                        }))}
+                        disabled={uploadStatus === 'uploading'}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Chọn danh mục" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="couples">Couples</SelectItem>
+                          <SelectItem value="nature">Nature</SelectItem>
+                          <SelectItem value="urban">Urban</SelectItem>
+                          <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                          <SelectItem value="adventure">Adventure</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="upload-tags">Thẻ (phân cách bằng dấu phẩy)</Label>
+                      <Input
+                        id="upload-tags"
+                        value={uploadData.tags}
+                        onChange={(e) => setUploadData(prev => ({ 
+                          ...prev, 
+                          tags: e.target.value 
+                        }))}
+                        placeholder="ví dụ: sunset, romance, outdoor"
+                        className="mt-1"
+                        disabled={uploadStatus === 'uploading'}
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        onClick={handleUpload}
+                        disabled={!uploadData.file || !uploadData.title || uploadStatus === 'uploading'}
+                        className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+                      >
+                        {uploadStatus === 'uploading' ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Đang tải...
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="h-4 w-4 mr-2" />
+                            Tải lên
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowUploadDialog(false)}
+                        className="flex-1"
+                        disabled={uploadStatus === 'uploading'}
+                      >
+                        Hủy
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </div>
@@ -552,7 +693,7 @@ function GalleryContent() {
             <div className="text-center py-8">
               <div className="inline-flex items-center gap-2 text-muted-foreground">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#93E1D8]"></div>
-                Đang tải thêm ảnh...
+                Đang xử lý...
               </div>
             </div>
           )}
@@ -596,10 +737,35 @@ function GalleryContent() {
                       <Download className="h-4 w-4" />
                       Tải về
                     </Button>
+                    <label htmlFor="replace-file">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="gap-2"
+                        asChild
+                      >
+                        <span>
+                          <RefreshCw className="h-4 w-4" />
+                          Thay thế
+                        </span>
+                      </Button>
+                      <input
+                        id="replace-file"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleReplace(selectedImage, file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => handleDelete(selectedImage.id)}
+                      onClick={() => handleDelete(selectedImage)}
                       className="text-red-500 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
