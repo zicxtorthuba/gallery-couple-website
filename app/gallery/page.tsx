@@ -169,7 +169,7 @@ function GalleryContent() {
       setUploadProgress(0);
       setUploadMessage('Đang tải lên...');
 
-      const res = await edgestore.publicFiles.upload({
+      const res = await edgestore.images.upload({
         file: uploadData.file,
         onProgressChange: (progress) => {
           setUploadProgress(progress);
@@ -247,7 +247,7 @@ function GalleryContent() {
     try {
       // Delete from EdgeStore if it's an uploaded image
       if (image.url.includes('edgestore')) {
-        await edgestore.publicFiles.delete({
+        await edgestore.images.delete({
           url: image.url,
         });
       }
@@ -264,7 +264,7 @@ function GalleryContent() {
     try {
       setLoading(true);
 
-      const res = await edgestore.publicFiles.upload({
+      const res = await edgestore.images.upload({
         file: newFile,
         options: {
           replaceTargetUrl: image.url,
