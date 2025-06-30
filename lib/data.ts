@@ -27,33 +27,76 @@ export const blogPosts: Array<{
   tags: string[];
 }> = [];
 
-// Mock user data
+// Mock user data based on the login users
 export const userData = {
-  user1: {
+  "1": { // John Doe
     savedBlogs: [],
     uploadedImages: [],
-    collections: [],
-    storageUsed: 0, // MB
+    collections: [
+      {
+        id: "1",
+        name: "Kỷ niệm đẹp",
+        images: [],
+        createdAt: "2024-01-15"
+      }
+    ],
+    storageUsed: 45, // MB
     storageLimit: 500, // MB (500MB limit)
-    activityHistory: [],
-    profilePicture: null as string | null
+    activityHistory: [
+      {
+        action: "Tạo bộ sưu tập",
+        item: "Kỷ niệm đẹp",
+        date: "2024-01-15"
+      }
+    ],
+    profilePicture: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1"
   },
-  user2: {
+  "2": { // Jane Smith
     savedBlogs: [],
     uploadedImages: [],
     collections: [],
-    storageUsed: 0,
+    storageUsed: 23,
     storageLimit: 500,
-    activityHistory: [],
-    profilePicture: null as string | null
+    activityHistory: [
+      {
+        action: "Đăng nhập",
+        item: "Hệ thống",
+        date: "2024-01-20"
+      }
+    ],
+    profilePicture: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1"
   },
-  admin: {
+  "3": { // Admin User
     savedBlogs: [],
     uploadedImages: [],
-    collections: [],
-    storageUsed: 0,
-    storageLimit: 500, // Even admin gets 500MB
-    activityHistory: [],
-    profilePicture: null as string | null
+    collections: [
+      {
+        id: "admin-1",
+        name: "Bộ sưu tập Admin",
+        images: [],
+        createdAt: "2024-01-01"
+      },
+      {
+        id: "admin-2", 
+        name: "Ảnh hệ thống",
+        images: [],
+        createdAt: "2024-01-05"
+      }
+    ],
+    storageUsed: 156,
+    storageLimit: 500,
+    activityHistory: [
+      {
+        action: "Quản lý hệ thống",
+        item: "Cập nhật cấu hình",
+        date: "2024-01-22"
+      },
+      {
+        action: "Tạo bộ sưu tập",
+        item: "Ảnh hệ thống", 
+        date: "2024-01-05"
+      }
+    ],
+    profilePicture: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1"
   }
 };
