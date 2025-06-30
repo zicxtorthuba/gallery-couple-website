@@ -30,11 +30,11 @@ import {
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { AuthGuard } from '@/components/AuthGuard';
-import { useSession } from 'next-auth/react';
+import { getStoredUser, updateStoredUser, type User as UserType } from '@/lib/auth';
 import { userData } from '@/lib/data';
 
 function PersonalContent() {
-  const { data: session } = useSession();
+  const [user, setUser] = useState<UserType | null>(null);
   const [userStats, setUserStats] = useState<any>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editData, setEditData] = useState({
@@ -45,17 +45,20 @@ function PersonalContent() {
   const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
-    if (session?.user) {
-      // Get user data - for now using default user data
-      const stats = userData.user1;
+    const currentUser = getStoredUser();
+    setUser(currentUser);
+    
+    if (currentUser) {
+      // Get user data based on role/name
+      const stats = userData[currentUser.role as keyof typeof userData] || userData.user1;
       setUserStats(stats);
       setEditData({
-        name: session.user.name || '',
+        name: currentUser.name,
         profilePicture: null
       });
-      setProfilePicturePreview(session.user.image || stats.profilePicture);
+      setProfilePicturePreview(currentUser.image || stats.profilePicture);
     }
-  }, [session]);
+  }, []);
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,26 +73,39 @@ function PersonalContent() {
   };
 
   const handleSaveProfile = () => {
-    if (!session?.user || !userStats) return;
+    if (!user || !userStats) return;
 
-    // In a real app, this would update the user in your database
+    // Update user name and picture
+    const updatedUser = { 
+      ...user, 
+      name: editData.name,
+      image: profilePicturePreview || user.image
+    };
+    updateStoredUser(updatedUser);
+    setUser(updatedUser);
+
+    // Update profile picture in userStats (in real app, this would be saved to backend)
+    if (editData.profilePicture) {
+      userStats.profilePicture = profilePicturePreview;
+    }
+
     setIsEditingProfile(false);
     setSaveMessage('Thông tin đã được cập nhật thành công!');
     setTimeout(() => setSaveMessage(''), 3000);
   };
 
   const handleCancelEdit = () => {
-    if (session?.user) {
+    if (user) {
       setEditData({
-        name: session.user.name || '',
+        name: user.name,
         profilePicture: null
       });
-      setProfilePicturePreview(session.user.image || userStats?.profilePicture || null);
+      setProfilePicturePreview(user.image || userStats?.profilePicture || null);
     }
     setIsEditingProfile(false);
   };
 
-  if (!session?.user || !userStats) {
+  if (!user || !userStats) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
@@ -121,10 +137,10 @@ function PersonalContent() {
               <div className="relative">
                 <Avatar className="h-20 w-20">
                   {profilePicturePreview ? (
-                    <AvatarImage src={profilePicturePreview} alt={session.user.name || ''} />
+                    <AvatarImage src={profilePicturePreview} alt={user.name} />
                   ) : (
                     <AvatarFallback className="bg-[#93E1D8] text-white text-2xl">
-                      {session.user.name?.[0]?.toUpperCase() || 'U'}
+                      {user.name[0].toUpperCase()}
                     </AvatarFallback>
                   )}
                 </Avatar>
@@ -177,11 +193,11 @@ function PersonalContent() {
                 ) : (
                   <>
                     <h1 className="font-cormorant text-3xl font-light mb-2">
-                      {session.user.name}
+                      {user.name}
                     </h1>
                     <p className="text-muted-foreground flex items-center gap-2">
                       <Mail className="h-4 w-4" />
-                      {session.user.email}
+                      {user.email}
                     </p>
                     <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
@@ -189,7 +205,7 @@ function PersonalContent() {
                         <span>Tham gia từ tháng 1, 2024</span>
                       </div>
                       <Badge variant="secondary" className="capitalize">
-                        Người dùng
+                        {user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
                       </Badge>
                     </div>
                   </>
@@ -413,21 +429,21 @@ function PersonalContent() {
                       <div className="flex items-center gap-4">
                         <Avatar className="h-16 w-16">
                           {profilePicturePreview ? (
-                            <AvatarImage src={profilePicturePreview} alt={session.user.name || ''} />
+                            <AvatarImage src={profilePicturePreview} alt={user.name} />
                           ) : (
                             <AvatarFallback className="bg-[#93E1D8] text-white text-xl">
-                              {session.user.name?.[0]?.toUpperCase() || 'U'}
+                              {user.name[0].toUpperCase()}
                             </AvatarFallback>
                           )}
                         </Avatar>
                         <div className="flex-1">
-                          <p className="font-medium">{session.user.name}</p>
+                          <p className="font-medium">{user.name}</p>
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Mail className="h-3 w-3" />
-                            {session.user.email}
+                            {user.email}
                           </p>
                           <Badge variant="secondary" className="mt-1 capitalize">
-                            Người dùng
+                            {user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
                           </Badge>
                         </div>
                         <Button

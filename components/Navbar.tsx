@@ -13,26 +13,36 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Settings, Heart } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
+import { getStoredUser, logout, type User as UserType } from "@/lib/auth";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const { data: session } = useSession();
+  const [user, setUser] = useState<UserType | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
 
+    const checkAuth = () => {
+      setUser(getStoredUser());
+    };
+
     window.addEventListener("scroll", handleScroll);
+    checkAuth();
+
+    // Listen for storage changes (login/logout from other tabs)
+    window.addEventListener("storage", checkAuth);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("storage", checkAuth);
     };
   }, []);
 
   const handleLogout = () => {
-    signOut({ callbackUrl: '/' });
+    logout();
+    setUser(null);
   };
 
   return (
@@ -57,16 +67,16 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
-          {session?.user ? (
+          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    {session.user.image ? (
-                      <AvatarImage src={session.user.image} alt={session.user.name || ''} />
+                    {user.image ? (
+                      <AvatarImage src={user.image} alt={user.name} />
                     ) : (
                       <AvatarFallback className="bg-[#93E1D8] text-white">
-                        {session.user.name?.[0]?.toUpperCase() || 'U'}
+                        {user.name[0].toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>
@@ -75,9 +85,9 @@ export function Navbar() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{session.user.name}</p>
+                    <p className="font-medium">{user.name}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {session.user.email}
+                      {user.email}
                     </p>
                   </div>
                 </div>
@@ -118,7 +128,7 @@ export function Navbar() {
               </Button>
             </Link>
           )}
-          <MobileMenu user={session?.user} onLogout={handleLogout} />
+          <MobileMenu user={user} onLogout={handleLogout} />
         </div>
       </div>
     </header>
@@ -136,7 +146,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-function MobileMenu({ user, onLogout }: { user: any; onLogout: () => void }) {
+function MobileMenu({ user, onLogout }: { user: UserType | null; onLogout: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
