@@ -1,0 +1,251 @@
+"use client";
+
+import { useState } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { 
+  CalendarIcon, 
+  ClockIcon, 
+  HeartIcon, 
+  MessageCircleIcon, 
+  ShareIcon,
+  BookmarkIcon,
+  ArrowLeftIcon
+} from 'lucide-react';
+import { blogPosts } from '@/lib/data';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+
+export default function BlogPostPage() {
+  const params = useParams();
+  const postId = params.id as string;
+  
+  const post = blogPosts.find(p => p.id === postId);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [likes, setLikes] = useState(post?.likes || 0);
+
+  if (!post) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <div className="pt-20 pb-16">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-2xl font-bold mb-4">Bài viết không tồn tại</h1>
+            <Link href="/blog">
+              <Button variant="outline">Quay lại Blog</Button>
+            </Link>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const handleLike = () => {
+    setIsLiked(!isLiked);
+    setLikes(prev => isLiked ? prev - 1 : prev + 1);
+  };
+
+  const handleSave = () => {
+    setIsSaved(!isSaved);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: post.title,
+        text: post.excerpt,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Navbar />
+      
+      <div className="pt-20 pb-16">
+        <div className="container mx-auto px-4 max-w-4xl">
+          {/* Back Button */}
+          <Link href="/blog" className="inline-flex items-center gap-2 text-muted-foreground hover:text-[#93E1D8] transition-colors mb-8">
+            <ArrowLeftIcon className="h-4 w-4" />
+            Quay lại Blog
+          </Link>
+
+          {/* Header */}
+          <header className="mb-8">
+            <h1 className="font-cormorant text-4xl md:text-5xl font-light leading-tight mb-6">
+              {post.title}
+            </h1>
+            
+            {/* Meta */}
+            <div className="flex flex-wrap items-center gap-6 mb-6">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={post.authorAvatar} alt={post.author} />
+                  <AvatarFallback>{post.author[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{post.author}</p>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <CalendarIcon className="h-4 w-4" />
+                      <span>{post.publishedAt}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ClockIcon className="h-4 w-4" />
+                      <span>{post.readTime} phút đọc</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-4 mb-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLike}
+                className={`gap-2 ${isLiked ? 'text-red-500 border-red-200' : ''}`}
+              >
+                <HeartIcon className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                {likes}
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <MessageCircleIcon className="h-4 w-4" />
+                {post.comments}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSave}
+                className={`gap-2 ${isSaved ? 'text-blue-500 border-blue-200' : ''}`}
+              >
+                <BookmarkIcon className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+                {isSaved ? 'Đã lưu' : 'Lưu'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
+                <ShareIcon className="h-4 w-4" />
+                Chia sẻ
+              </Button>
+            </div>
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2 mb-8">
+              {post.tags.map(tag => (
+                <Badge key={tag} variant="secondary" className="text-sm">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </header>
+
+          {/* Featured Image */}
+          <div className="relative h-64 md:h-96 overflow-hidden rounded-xl mb-12">
+            <Image
+              src={post.featuredImage}
+              alt={post.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 80vw"
+              className="object-cover"
+            />
+          </div>
+
+          {/* Content */}
+          <article className="prose prose-lg max-w-none">
+            <div 
+              className="text-gray-700 leading-relaxed space-y-6"
+              style={{ 
+                fontFamily: 'var(--font-cormorant)',
+                fontSize: '1.125rem',
+                lineHeight: '1.8'
+              }}
+              dangerouslySetInnerHTML={{ 
+                __html: post.content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>').replace(/^/, '<p>').replace(/$/, '</p>').replace(/## (.*?)<br>/g, '<h2 style="font-size: 1.5rem; font-weight: 600; margin: 2rem 0 1rem 0; color: #1f2937;">$1</h2>').replace(/### (.*?)<br>/g, '<h3 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 0.75rem 0; color: #1f2937;">$3</h3>')
+              }}
+            />
+          </article>
+
+          {/* Footer Actions */}
+          <Separator className="my-12" />
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                onClick={handleLike}
+                className={`gap-2 ${isLiked ? 'text-red-500 border-red-200' : ''}`}
+              >
+                <HeartIcon className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                {isLiked ? 'Đã thích' : 'Thích bài viết'}
+              </Button>
+              <Button variant="outline" onClick={handleShare} className="gap-2">
+                <ShareIcon className="h-4 w-4" />
+                Chia sẻ
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={post.authorAvatar} alt={post.author} />
+                <AvatarFallback>{post.author[0].toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="text-sm">
+                <p className="font-medium">Viết bởi {post.author}</p>
+                <p className="text-muted-foreground">{post.publishedAt}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Related Posts */}
+          <Separator className="my-12" />
+          
+          <div>
+            <h3 className="font-cormorant text-2xl font-light mb-6">Bài viết liên quan</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {blogPosts.filter(p => p.id !== post.id).slice(0, 2).map(relatedPost => (
+                <Link key={relatedPost.id} href={`/blog/${relatedPost.id}`} className="group">
+                  <div className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="relative h-48">
+                      <Image
+                        src={relatedPost.featuredImage}
+                        alt={relatedPost.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h4 className="font-cormorant text-xl font-medium mb-2 group-hover:text-[#93E1D8] transition-colors">
+                        {relatedPost.title}
+                      </h4>
+                      <p className="text-muted-foreground text-sm line-clamp-2">
+                        {relatedPost.excerpt}
+                      </p>
+                      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                        <span>{relatedPost.publishedAt}</span>
+                        <span>•</span>
+                        <span>{relatedPost.readTime} phút đọc</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+}
