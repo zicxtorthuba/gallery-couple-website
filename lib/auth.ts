@@ -34,6 +34,9 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
   }
 };
 
+// Alias for backward compatibility
+export const getStoredUser = getCurrentUser;
+
 // Sign in with Google
 export const signInWithGoogle = async () => {
   try {
