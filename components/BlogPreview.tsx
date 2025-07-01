@@ -15,7 +15,6 @@ const iconMap: Record<string, any> = {
 export function BlogPreview() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadPosts();
@@ -23,13 +22,10 @@ export function BlogPreview() {
 
   const loadPosts = async () => {
     try {
-      setLoading(true);
-      setError(null);
       const publishedPosts = await getBlogPosts(false); // Only published posts
       setPosts(publishedPosts.slice(0, 3)); // Show only 3 latest posts
     } catch (error) {
       console.error('Error loading posts:', error);
-      setError('Không thể tải bài viết');
     } finally {
       setLoading(false);
     }
@@ -42,6 +38,24 @@ export function BlogPreview() {
     return FileText;
   };
 
+  if (loading) {
+    return (
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Blog</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Lời khuyên, những bức thư và những câu chuyện tâm sự
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-24 bg-white">
       <div className="container mx-auto px-4">
@@ -52,18 +66,7 @@ export function BlogPreview() {
           </p>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={loadPosts} variant="outline">
-              Thử lại
-            </Button>
-          </div>
-        ) : posts.length > 0 ? (
+        {posts.length > 0 ? (
           <div className="space-y-12">
             {/* Featured Posts Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
