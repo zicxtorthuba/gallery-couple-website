@@ -38,11 +38,37 @@ export const isFileSizeValid = (file: File): boolean => {
   return file.size <= MAX_FILE_SIZE;
 };
 
+// Check if table exists (helper function)
+const checkTableExists = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('user_uploads')
+      .select('id')
+      .limit(1);
+    
+    return !error;
+  } catch (error) {
+    return false;
+  }
+};
+
 // Get user's storage info
 export const getUserStorageInfo = async (): Promise<StorageInfo> => {
   try {
     const user = await getCurrentUser();
     if (!user) {
+      return {
+        used: 0,
+        limit: STORAGE_LIMIT,
+        percentage: 0,
+        remaining: STORAGE_LIMIT
+      };
+    }
+
+    // Check if table exists first
+    const tableExists = await checkTableExists();
+    if (!tableExists) {
+      console.warn('user_uploads table does not exist yet. Please run the migration.');
       return {
         used: 0,
         limit: STORAGE_LIMIT,
@@ -67,8 +93,8 @@ export const getUserStorageInfo = async (): Promise<StorageInfo> => {
     }
 
     const used = data?.reduce((total, upload) => total + upload.size, 0) || 0;
-    const percentage = (used / STORAGE_LIMIT) * 100;
-    const remaining = STORAGE_LIMIT - used;
+    const percentage = Math.min((used / STORAGE_LIMIT) * 100, 100);
+    const remaining = Math.max(STORAGE_LIMIT - used, 0);
 
     return {
       used,
@@ -89,8 +115,14 @@ export const getUserStorageInfo = async (): Promise<StorageInfo> => {
 
 // Check if user has enough storage space
 export const hasStorageSpace = async (fileSize: number): Promise<boolean> => {
-  const storageInfo = await getUserStorageInfo();
-  return storageInfo.remaining >= fileSize;
+  try {
+    const storageInfo = await getUserStorageInfo();
+    return storageInfo.remaining >= fileSize;
+  } catch (error) {
+    console.error('Error checking storage space:', error);
+    // If there's an error, allow the upload (graceful degradation)
+    return true;
+  }
 };
 
 // Record file upload
@@ -104,6 +136,13 @@ export const recordFileUpload = async (
   try {
     const user = await getCurrentUser();
     if (!user) return false;
+
+    // Check if table exists first
+    const tableExists = await checkTableExists();
+    if (!tableExists) {
+      console.warn('user_uploads table does not exist yet. Skipping upload recording.');
+      return true; // Return true to not block the upload
+    }
 
     const { error } = await supabase
       .from('user_uploads')
@@ -134,6 +173,13 @@ export const removeFileUpload = async (url: string): Promise<boolean> => {
     const user = await getCurrentUser();
     if (!user) return false;
 
+    // Check if table exists first
+    const tableExists = await checkTableExists();
+    if (!tableExists) {
+      console.warn('user_uploads table does not exist yet. Skipping upload removal.');
+      return true; // Return true to not block the deletion
+    }
+
     const { error } = await supabase
       .from('user_uploads')
       .delete()
@@ -157,6 +203,13 @@ export const getUserUploads = async (): Promise<ImageUpload[]> => {
   try {
     const user = await getCurrentUser();
     if (!user) return [];
+
+    // Check if table exists first
+    const tableExists = await checkTableExists();
+    if (!tableExists) {
+      console.warn('user_uploads table does not exist yet. Returning empty array.');
+      return [];
+    }
 
     const { data, error } = await supabase
       .from('user_uploads')
@@ -182,5 +235,22 @@ export const getUserUploads = async (): Promise<ImageUpload[]> => {
   } catch (error) {
     console.error('Error in getUserUploads:', error);
     return [];
+  }
+};
+
+// Get storage warning level
+export const getStorageWarningLevel = (percentage: number): 'normal' | 'warning' | 'critical' => {
+  if (percentage >= 90) return 'critical';
+  if (percentage >= 75) return 'warning';
+  return 'normal';
+};
+
+// Get storage color based on usage
+export const getStorageColor = (percentage: number): string => {
+  const level = getStorageWarningLevel(percentage);
+  switch (level) {
+    case 'critical': return 'rgb(239, 68, 68)'; // red-500
+    case 'warning': return 'rgb(245, 158, 11)'; // amber-500
+    default: return 'rgb(34, 197, 94)'; // green-500
   }
 };
