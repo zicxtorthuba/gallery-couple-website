@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import Iridescence from "@/components/ui/Iridescence";
 import { signInWithGoogle, getCurrentUser, onAuthStateChange } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -16,12 +16,49 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [mounted, setMounted] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // indicate that we are now on the client so we can safely reference window
     setMounted(true);
+
+    // Check internet connectivity
+    const checkConnection = async () => {
+      try {
+        setConnectionStatus('checking');
+        // Try to fetch a small resource to test connectivity
+        const response = await fetch('/favicon.ico', { 
+          method: 'HEAD',
+          cache: 'no-cache'
+        });
+        setIsOnline(response.ok);
+        setConnectionStatus('connected');
+      } catch (error) {
+        setIsOnline(false);
+        setConnectionStatus('disconnected');
+        console.warn('Connection check failed:', error);
+      }
+    };
+
+    checkConnection();
+
+    // Listen for online/offline events
+    const handleOnline = () => {
+      setIsOnline(true);
+      setConnectionStatus('connected');
+      setError(null);
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      setConnectionStatus('disconnected');
+      setError('Mất kết nối internet. Vui lòng kiểm tra kết nối và thử lại.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     // Handle OAuth callback with tokens in URL fragment
     const handleOAuthCallback = async () => {
@@ -36,8 +73,6 @@ export default function LoginPage() {
           const params = new URLSearchParams(hash.substring(1));
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
-          const expiresIn = params.get('expires_in');
-          const tokenType = params.get('token_type');
           
           if (accessToken) {
             console.log('Setting session with tokens from URL');
@@ -70,16 +105,20 @@ export default function LoginPage() {
           }
         } catch (error: any) {
           console.error('Error handling OAuth callback:', error);
-          setError('Lỗi xử lý callback từ Google. Vui lòng thử lại.');
+          if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+            setError('Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.');
+          } else {
+            setError('Lỗi xử lý callback từ Google. Vui lòng thử lại.');
+          }
           setDebugInfo(`Chi tiết: ${error.message}`);
         } finally {
           setIsLoading(false);
         }
         
-        return true; // Indicates we handled the callback
+        return true;
       }
       
-      return false; // No callback to handle
+      return false;
     };
 
     // Check for error in URL params
@@ -143,8 +182,11 @@ export default function LoginPage() {
               router.push('/');
             }, 2000);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error checking auth:', error);
+          if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+            setError('Lỗi kết nối mạng khi kiểm tra đăng nhập. Vui lòng thử lại.');
+          }
         }
       };
       
@@ -163,11 +205,18 @@ export default function LoginPage() {
     });
 
     return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       subscription?.unsubscribe();
     };
   }, [router, searchParams, showSuccess]);
 
   const handleGoogleSignIn = async () => {
+    if (!isOnline) {
+      setError('Không có kết nối internet. Vui lòng kiểm tra kết nối và thử lại.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -176,7 +225,6 @@ export default function LoginPage() {
       console.log('Starting Google sign in...');
       await signInWithGoogle();
       
-      // The redirect will happen automatically via OAuth flow
       console.log('Sign in initiated, waiting for redirect...');
       
     } catch (error: any) {
@@ -265,6 +313,23 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {/* Connection Status */}
+            {connectionStatus !== 'connected' && (
+              <Alert className={connectionStatus === 'disconnected' ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'}>
+                {connectionStatus === 'disconnected' ? (
+                  <WifiOff className="h-4 w-4 text-red-500" />
+                ) : (
+                  <Wifi className="h-4 w-4 text-yellow-500" />
+                )}
+                <AlertDescription className={connectionStatus === 'disconnected' ? 'text-red-700' : 'text-yellow-700'}>
+                  {connectionStatus === 'disconnected' 
+                    ? 'Không có kết nối internet. Vui lòng kiểm tra kết nối của bạn.'
+                    : 'Đang kiểm tra kết nối...'
+                  }
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Error Alert */}
             {error && (
               <Alert className="border-red-200 bg-red-50">
@@ -280,8 +345,9 @@ export default function LoginPage() {
                         <p><strong>Khắc phục:</strong></p>
                         <ul className="list-disc list-inside space-y-1">
                           <li>Đảm bảo kết nối internet ổn định</li>
-                          <li>Thử xóa cache và cookies của trình duyệt</li>
+                          <li>Thử tải lại trang</li>
                           <li>Kiểm tra cấu hình Google OAuth</li>
+                          <li>Thử xóa cache và cookies của trình duyệt</li>
                         </ul>
                       </div>
                     </div>
@@ -301,23 +367,31 @@ export default function LoginPage() {
             {/* Google Login */}
             <Button
               onClick={handleGoogleSignIn}
-              disabled={isLoading}
-              className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md h-auto"
+              disabled={isLoading || !isOnline || connectionStatus !== 'connected'}
+              className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md h-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+              ) : !isOnline ? (
+                <WifiOff className="h-5 w-5 mr-3 text-red-500" />
               ) : (
                 <Chrome className="h-5 w-5 mr-3 text-blue-500" />
               )}
-              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập với Google'}
+              {isLoading 
+                ? 'Đang đăng nhập...' 
+                : !isOnline 
+                  ? 'Không có kết nối' 
+                  : 'Đăng nhập với Google'
+              }
             </Button>
 
             {/* Retry Button */}
-            {error && (
+            {(error || !isOnline) && (
               <Button
                 onClick={handleRetry}
                 variant="outline"
                 className="w-full"
+                disabled={isLoading}
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Thử lại
@@ -330,7 +404,8 @@ export default function LoginPage() {
                 <p><strong>Debug Info:</strong></p>
                 <p>URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
                 <p>Origin: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</p>
-                <p>Callback URL: {typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : 'N/A'}</p>
+                <p>Online: {isOnline ? 'Yes' : 'No'}</p>
+                <p>Connection: {connectionStatus}</p>
                 <p>Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
                 {typeof window !== 'undefined' && window.location.hash && (
                   <p>Hash: {window.location.hash.substring(0, 100)}...</p>

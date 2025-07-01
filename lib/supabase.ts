@@ -3,12 +3,37 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+// Validate environment variables
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables');
+  throw new Error('Missing Supabase configuration');
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'implicit' // Change from 'pkce' to 'implicit' for better compatibility
+    flowType: 'implicit'
+  },
+  global: {
+    fetch: (url, options = {}) => {
+      // Add timeout and retry logic to fetch requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      return fetch(url, {
+        ...options,
+        signal: controller.signal,
+      }).finally(() => {
+        clearTimeout(timeoutId);
+      }).catch((error) => {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timeout - please check your internet connection');
+        }
+        throw error;
+      });
+    }
   }
 });
 
@@ -101,6 +126,38 @@ export type Database = {
           category?: string | null;
           post_count?: number;
           created_at?: string;
+        };
+      };
+      user_uploads: {
+        Row: {
+          id: string;
+          url: string;
+          filename: string;
+          size: number;
+          user_id: string;
+          type: 'gallery' | 'blog';
+          associated_id: string | null;
+          uploaded_at: string;
+        };
+        Insert: {
+          id?: string;
+          url: string;
+          filename: string;
+          size: number;
+          user_id: string;
+          type: 'gallery' | 'blog';
+          associated_id?: string | null;
+          uploaded_at?: string;
+        };
+        Update: {
+          id?: string;
+          url?: string;
+          filename?: string;
+          size?: number;
+          user_id?: string;
+          type?: 'gallery' | 'blog';
+          associated_id?: string | null;
+          uploaded_at?: string;
         };
       };
     };

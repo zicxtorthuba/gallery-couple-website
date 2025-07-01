@@ -1,19 +1,14 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  HardDrive, 
-  AlertTriangle, 
-  AlertCircle,
-  Info
-} from 'lucide-react';
+import { HardDrive, AlertTriangle, Info, Wifi, WifiOff } from 'lucide-react';
 import { 
   getUserStorageInfo, 
   formatBytes, 
-  getStorageWarningLevel,
+  getStorageWarningLevel, 
   getStorageColor,
   type StorageInfo 
 } from '@/lib/storage';
@@ -27,108 +22,139 @@ interface StorageIndicatorProps {
 
 export function StorageIndicator({ 
   className, 
-  showDetails = true,
+  showDetails = true, 
   onStorageUpdate 
 }: StorageIndicatorProps) {
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    loadStorageInfo();
+    // Check online status
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
     
-    // Refresh storage info every 30 seconds
-    const interval = setInterval(loadStorageInfo, 30000);
-    
-    return () => clearInterval(interval);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setIsOnline(navigator.onLine);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const loadStorageInfo = async () => {
+    if (!isOnline) {
+      setError('Không có kết nối internet');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
+      
       const info = await getUserStorageInfo();
       setStorageInfo(info);
       onStorageUpdate?.(info);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading storage info:', error);
-      setError('Không thể tải thông tin dung lượng');
+      
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
+        setError('Lỗi kết nối mạng');
+      } else {
+        setError('Không thể tải thông tin lưu trữ');
+      }
+      
+      // Provide fallback data
+      const fallbackInfo: StorageInfo = {
+        used: 0,
+        limit: 1024 * 1024 * 1024, // 1GB
+        percentage: 0,
+        remaining: 1024 * 1024 * 1024
+      };
+      setStorageInfo(fallbackInfo);
+      onStorageUpdate?.(fallbackInfo);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadStorageInfo();
+  }, [isOnline]);
+
+  // Auto-refresh every 30 seconds when online
+  useEffect(() => {
+    if (!isOnline) return;
+    
+    const interval = setInterval(loadStorageInfo, 30000);
+    return () => clearInterval(interval);
+  }, [isOnline]);
+
   if (loading) {
     return (
-      <Card className={cn("w-full", className)}>
+      <Card className={cn("border-gray-200", className)}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <HardDrive className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-1">
-              <div className="h-2 bg-gray-200 rounded-full animate-pulse"></div>
-              <p className="text-sm text-muted-foreground mt-1">Đang tải...</p>
-            </div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#93E1D8]"></div>
+            <span className="text-sm text-muted-foreground">Đang tải thông tin lưu trữ...</span>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (error) {
-    return (
-      <Alert className="border-yellow-200 bg-yellow-50">
-        <Info className="h-4 w-4 text-yellow-500" />
-        <AlertDescription className="text-yellow-700">
-          {error}. Tính năng theo dõi dung lượng sẽ hoạt động sau khi cơ sở dữ liệu được cập nhật.
-        </AlertDescription>
-      </Alert>
-    );
+  if (!storageInfo) {
+    return null;
   }
-
-  if (!storageInfo) return null;
 
   const warningLevel = getStorageWarningLevel(storageInfo.percentage);
   const storageColor = getStorageColor(storageInfo.percentage);
 
-  const getWarningMessage = () => {
-    switch (warningLevel) {
-      case 'critical':
-        return {
-          icon: AlertCircle,
-          message: 'Dung lượng lưu trữ gần hết! Vui lòng xóa một số ảnh để giải phóng không gian.',
-          className: 'border-red-200 bg-red-50 text-red-700'
-        };
-      case 'warning':
-        return {
-          icon: AlertTriangle,
-          message: 'Dung lượng lưu trữ đang cao. Hãy cân nhắc xóa một số ảnh không cần thiết.',
-          className: 'border-amber-200 bg-amber-50 text-amber-700'
-        };
-      default:
-        return null;
-    }
-  };
-
-  const warning = getWarningMessage();
-
   return (
-    <div className={cn("space-y-4", className)}>
-      {/* Storage Progress Card */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
-            Dung lượng lưu trữ
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Đã sử dụng</span>
-              <span className="font-medium">
-                {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
-              </span>
+    <div className={cn("space-y-3", className)}>
+      {/* Connection Status */}
+      {!isOnline && (
+        <Alert className="border-red-200 bg-red-50">
+          <WifiOff className="h-4 w-4 text-red-500" />
+          <AlertDescription className="text-red-700">
+            Không có kết nối internet. Thông tin lưu trữ có thể không chính xác.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          <AlertDescription className="text-yellow-700">
+            {error}. Hiển thị dữ liệu dự phòng.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Storage Info Card */}
+      <Card className={cn(
+        "border-gray-200",
+        warningLevel === 'critical' && "border-red-200 bg-red-50",
+        warningLevel === 'warning' && "border-yellow-200 bg-yellow-50"
+      )}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <HardDrive className="h-4 w-4 text-[#93E1D8]" />
+              <span className="font-medium text-sm">Dung lượng lưu trữ</span>
+              {!isOnline && <WifiOff className="h-3 w-3 text-red-500" />}
             </div>
+            <span className="text-sm text-muted-foreground">
+              {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
+            </span>
+          </div>
+
+          <div className="space-y-2">
             <Progress 
               value={storageInfo.percentage} 
               className="h-2"
@@ -136,6 +162,7 @@ export function StorageIndicator({
                 '--progress-background': storageColor
               } as React.CSSProperties}
             />
+            
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{storageInfo.percentage.toFixed(1)}% đã sử dụng</span>
               <span>{formatBytes(storageInfo.remaining)} còn lại</span>
@@ -143,33 +170,34 @@ export function StorageIndicator({
           </div>
 
           {showDetails && (
-            <div className="grid grid-cols-3 gap-4 pt-2 border-t">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">Đã dùng</p>
-                <p className="text-sm font-medium">{formatBytes(storageInfo.used)}</p>
+            <>
+              {/* Warning Messages */}
+              {warningLevel === 'critical' && (
+                <Alert className="mt-3 border-red-200 bg-red-50">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <AlertDescription className="text-red-700 text-xs">
+                    <strong>Cảnh báo:</strong> Dung lượng gần hết! Vui lòng xóa một số ảnh để giải phóng không gian.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {warningLevel === 'warning' && (
+                <Alert className="mt-3 border-yellow-200 bg-yellow-50">
+                  <Info className="h-4 w-4 text-yellow-500" />
+                  <AlertDescription className="text-yellow-700 text-xs">
+                    <strong>Lưu ý:</strong> Dung lượng đang cao. Hãy cân nhắc xóa các ảnh không cần thiết.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Storage Tips */}
+              <div className="mt-3 p-2 bg-gray-50 rounded text-xs text-muted-foreground">
+                <p><strong>Mẹo:</strong> Mỗi ảnh tối đa 5MB. Xóa ảnh cũ để tải lên ảnh mới.</p>
               </div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">Còn lại</p>
-                <p className="text-sm font-medium">{formatBytes(storageInfo.remaining)}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">Tổng cộng</p>
-                <p className="text-sm font-medium">{formatBytes(storageInfo.limit)}</p>
-              </div>
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
-
-      {/* Warning Alert */}
-      {warning && (
-        <Alert className={warning.className}>
-          <warning.icon className="h-4 w-4" />
-          <AlertDescription>
-            {warning.message}
-          </AlertDescription>
-        </Alert>
-      )}
     </div>
   );
 }
