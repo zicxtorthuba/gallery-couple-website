@@ -8,7 +8,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { BlogList } from '@/components/blog/BlogList';
 import { BlogEditor } from '@/components/blog/BlogEditor';
 import { TagManager } from '@/components/blog/TagManager';
-import { BlogPost } from '@/lib/blog';
+import { BlogPost } from '@/lib/blog-supabase';
 
 type ViewMode = 'list' | 'editor' | 'tags';
 

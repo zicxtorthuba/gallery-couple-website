@@ -24,7 +24,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
-import { BlogPost, getBlogPosts, deleteBlogPost, getBlogTags, updateTagCounts } from '@/lib/blog';
+import { BlogPost, getBlogPosts, deleteBlogPost, getBlogTags } from '@/lib/blog-supabase';
 import { getStoredUser } from '@/lib/auth';
 
 interface BlogListProps {
@@ -40,22 +40,40 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<BlogPost | null>(null);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [tags, setTags] = useState<any[]>([]);
   
   const user = getStoredUser();
-  const tags = getBlogTags();
 
   useEffect(() => {
     loadPosts();
+    loadTags();
   }, []);
 
   useEffect(() => {
     filterPosts();
   }, [posts, searchTerm, selectedStatus, selectedTag]);
 
-  const loadPosts = () => {
-    const allPosts = getBlogPosts();
-    setPosts(allPosts);
-    updateTagCounts();
+  const loadPosts = async () => {
+    try {
+      setLoading(true);
+      const allPosts = await getBlogPosts(true); // Include unpublished posts
+      setPosts(allPosts);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+      setMessage('Có lỗi xảy ra khi tải bài viết');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTags = async () => {
+    try {
+      const allTags = await getBlogTags();
+      setTags(allTags);
+    } catch (error) {
+      console.error('Error loading tags:', error);
+    }
   };
 
   const filterPosts = () => {
@@ -87,15 +105,21 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
     setDeleteConfirm(post);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteConfirm) return;
 
-    const success = deleteBlogPost(deleteConfirm.id);
-    if (success) {
-      loadPosts();
-      setMessage('Bài viết đã được xóa thành công!');
-      setTimeout(() => setMessage(''), 3000);
-    } else {
+    try {
+      const success = await deleteBlogPost(deleteConfirm.id);
+      if (success) {
+        await loadPosts();
+        await loadTags(); // Reload tags to update counts
+        setMessage('Bài viết đã được xóa thành công!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi xóa bài viết');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
       setMessage('Có lỗi xảy ra khi xóa bài viết');
     }
     setDeleteConfirm(null);
@@ -122,6 +146,14 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
     const IconComponent = iconName ? iconMap[iconName] : FileText;
     return IconComponent || FileText;
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

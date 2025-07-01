@@ -24,7 +24,7 @@ import {
   Eye,
   Palette
 } from 'lucide-react';
-import { BlogPost, getBlogPosts } from '@/lib/blog';
+import { BlogPost, getBlogPost, getBlogPosts } from '@/lib/blog-supabase';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 
@@ -41,26 +41,77 @@ export default function BlogPostPage() {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [likes, setLikes] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const posts = getBlogPosts();
-    const foundPost = posts.find(p => p.id === postId && p.status === 'published');
-    
-    if (foundPost) {
-      setPost(foundPost);
-      setLikes(foundPost.likes);
-      
-      // Get related posts (same tags, excluding current post)
-      const related = posts
-        .filter(p => 
-          p.id !== postId && 
-          p.status === 'published' &&
-          p.tags.some(tag => foundPost.tags.includes(tag))
-        )
-        .slice(0, 2);
-      setRelatedPosts(related);
-    }
+    loadPost();
   }, [postId]);
+
+  const loadPost = async () => {
+    try {
+      setLoading(true);
+      const foundPost = await getBlogPost(postId);
+      
+      if (foundPost && foundPost.status === 'published') {
+        setPost(foundPost);
+        setLikes(foundPost.likes);
+        
+        // Get related posts (same tags, excluding current post)
+        const allPosts = await getBlogPosts(false); // Only published posts
+        const related = allPosts
+          .filter(p => 
+            p.id !== postId && 
+            p.tags.some(tag => foundPost.tags.includes(tag))
+          )
+          .slice(0, 2);
+        setRelatedPosts(related);
+      }
+    } catch (error) {
+      console.error('Error loading post:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLike = () => {
+    setIsLiked(!isLiked);
+    setLikes(prev => isLiked ? prev - 1 : prev + 1);
+  };
+
+  const handleSave = () => {
+    setIsSaved(!isSaved);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: post?.title,
+        text: post?.excerpt,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
+  const getPostIcon = () => {
+    if (post?.customIcon && iconMap[post.customIcon]) {
+      return iconMap[post.customIcon];
+    }
+    return FileText;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <div className="pt-20 pb-16 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -78,34 +129,6 @@ export default function BlogPostPage() {
       </div>
     );
   }
-
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(prev => isLiked ? prev - 1 : prev + 1);
-  };
-
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: post.title,
-        text: post.excerpt,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-    }
-  };
-
-  const getPostIcon = () => {
-    if (post.customIcon && iconMap[post.customIcon]) {
-      return iconMap[post.customIcon];
-    }
-    return FileText;
-  };
 
   const PostIcon = getPostIcon();
 

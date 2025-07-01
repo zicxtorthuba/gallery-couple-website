@@ -19,7 +19,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
-import { BlogTag, getBlogTags, saveBlogTags, createBlogTag } from '@/lib/blog';
+import { BlogTag, getBlogTags, createBlogTag, updateBlogTag, deleteBlogTag } from '@/lib/blog-supabase';
 
 export function TagManager() {
   const [tags, setTags] = useState<BlogTag[]>([]);
@@ -27,16 +27,26 @@ export function TagManager() {
   const [deleteConfirm, setDeleteConfirm] = useState<BlogTag | null>(null);
   const [newTag, setNewTag] = useState({ name: '', color: '#93E1D8', category: '' });
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadTags();
   }, []);
 
-  const loadTags = () => {
-    setTags(getBlogTags());
+  const loadTags = async () => {
+    try {
+      setLoading(true);
+      const allTags = await getBlogTags();
+      setTags(allTags);
+    } catch (error) {
+      console.error('Error loading tags:', error);
+      setMessage('Có lỗi xảy ra khi tải thẻ');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateTag = () => {
+  const handleCreateTag = async () => {
     if (!newTag.name.trim()) return;
 
     const existingTag = tags.find(tag => tag.name.toLowerCase() === newTag.name.toLowerCase());
@@ -46,29 +56,48 @@ export function TagManager() {
       return;
     }
 
-    createBlogTag(newTag.name, newTag.color, newTag.category || undefined);
-    setNewTag({ name: '', color: '#93E1D8', category: '' });
-    loadTags();
-    setMessage('Thẻ đã được tạo thành công!');
-    setTimeout(() => setMessage(''), 3000);
+    try {
+      const createdTag = await createBlogTag(newTag.name, newTag.color, newTag.category || undefined);
+      if (createdTag) {
+        setNewTag({ name: '', color: '#93E1D8', category: '' });
+        await loadTags();
+        setMessage('Thẻ đã được tạo thành công!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi tạo thẻ');
+      }
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      setMessage('Có lỗi xảy ra khi tạo thẻ');
+    }
   };
 
   const handleEditTag = (tag: BlogTag) => {
     setEditingTag({ ...tag });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingTag) return;
 
-    const updatedTags = tags.map(tag => 
-      tag.id === editingTag.id ? editingTag : tag
-    );
-    
-    saveBlogTags(updatedTags);
-    setEditingTag(null);
-    loadTags();
-    setMessage('Thẻ đã được cập nhật!');
-    setTimeout(() => setMessage(''), 3000);
+    try {
+      const updatedTag = await updateBlogTag(editingTag.id, {
+        name: editingTag.name,
+        color: editingTag.color,
+        category: editingTag.category
+      });
+
+      if (updatedTag) {
+        setEditingTag(null);
+        await loadTags();
+        setMessage('Thẻ đã được cập nhật!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi cập nhật thẻ');
+      }
+    } catch (error) {
+      console.error('Error updating tag:', error);
+      setMessage('Có lỗi xảy ra khi cập nhật thẻ');
+    }
   };
 
   const handleDeleteTag = (tag: BlogTag) => {
@@ -80,18 +109,34 @@ export function TagManager() {
     setDeleteConfirm(tag);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteConfirm) return;
 
-    const updatedTags = tags.filter(tag => tag.id !== deleteConfirm.id);
-    saveBlogTags(updatedTags);
-    setDeleteConfirm(null);
-    loadTags();
-    setMessage('Thẻ đã được xóa!');
-    setTimeout(() => setMessage(''), 3000);
+    try {
+      const success = await deleteBlogTag(deleteConfirm.id);
+      if (success) {
+        setDeleteConfirm(null);
+        await loadTags();
+        setMessage('Thẻ đã được xóa!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi xóa thẻ');
+      }
+    } catch (error) {
+      console.error('Error deleting tag:', error);
+      setMessage('Có lỗi xảy ra khi xóa thẻ');
+    }
   };
 
   const tagCategories = Array.from(new Set(tags.map(tag => tag.category).filter(Boolean)));
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

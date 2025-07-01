@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
@@ -28,7 +27,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useEdgeStore } from '@/lib/edgestore';
-import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag, saveBlogTags } from '@/lib/blog';
+import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag } from '@/lib/blog-supabase';
 import { getStoredUser } from '@/lib/auth';
 
 interface BlogEditorProps {
@@ -59,9 +58,10 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   
   const [newTag, setNewTag] = useState('');
   const [tagColor, setTagColor] = useState('#93E1D8');
-  const [availableTags, setAvailableTags] = useState(getBlogTags());
+  const [availableTags, setAvailableTags] = useState<any[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
@@ -70,8 +70,17 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const user = getStoredUser();
 
   useEffect(() => {
-    setAvailableTags(getBlogTags());
+    loadTags();
   }, []);
+
+  const loadTags = async () => {
+    try {
+      const tags = await getBlogTags();
+      setAvailableTags(tags);
+    } catch (error) {
+      console.error('Error loading tags:', error);
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -112,7 +121,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     }
   };
 
-  const handleAddTag = () => {
+  const handleAddTag = async () => {
     if (!newTag.trim()) return;
     
     const tagName = newTag.toLowerCase().trim();
@@ -121,8 +130,14 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     const existingTag = availableTags.find(tag => tag.name === tagName);
     
     if (!existingTag) {
-      const newTagObj = createBlogTag(tagName, tagColor);
-      setAvailableTags(prev => [...prev, newTagObj]);
+      try {
+        const newTagObj = await createBlogTag(tagName, tagColor);
+        if (newTagObj) {
+          setAvailableTags(prev => [...prev, newTagObj]);
+        }
+      } catch (error) {
+        console.error('Error creating tag:', error);
+      }
     }
     
     if (!formData.tags.includes(tagName)) {
@@ -142,37 +157,49 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     }));
   };
 
-  const handleSave = () => {
-    if (!validateForm() || !user) return;
+  const handleSave = async () => {
+    if (!validateForm() || !user || isSaving) return;
 
     try {
-      let savedPost: BlogPost;
+      setIsSaving(true);
+      let savedPost: BlogPost | null = null;
       
       if (post) {
-        savedPost = updateBlogPost(post.id, formData, user.name)!;
+        savedPost = await updateBlogPost(post.id, {
+          title: formData.title,
+          content: formData.content,
+          featuredImage: formData.featuredImage || undefined,
+          customIcon: formData.customIcon || undefined,
+          tags: formData.tags,
+          status: formData.status
+        });
       } else {
-        savedPost = createBlogPost({
-          ...formData,
+        savedPost = await createBlogPost({
+          title: formData.title,
+          content: formData.content,
+          featuredImage: formData.featuredImage || undefined,
+          customIcon: formData.customIcon || undefined,
+          tags: formData.tags,
+          status: formData.status,
+          author: user.name,
+          authorId: user.id,
           authorAvatar: user.image || ''
-        }, user.id, user.name);
+        });
       }
       
-      // Update tag counts
-      const tags = getBlogTags();
-      tags.forEach(tag => {
-        const posts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
-        tag.postCount = posts.filter((p: BlogPost) => 
-          p.tags.includes(tag.name) && p.status === 'published'
-        ).length;
-      });
-      saveBlogTags(tags);
-      
-      setSaveMessage(post ? 'Bài viết đã được cập nhật!' : 'Bài viết đã được tạo!');
-      setTimeout(() => {
-        onSave(savedPost);
-      }, 1000);
+      if (savedPost) {
+        setSaveMessage(post ? 'Bài viết đã được cập nhật!' : 'Bài viết đã được tạo!');
+        setTimeout(() => {
+          onSave(savedPost);
+        }, 1000);
+      } else {
+        setSaveMessage('Có lỗi xảy ra khi lưu bài viết');
+      }
     } catch (error) {
+      console.error('Error saving post:', error);
       setSaveMessage('Có lỗi xảy ra khi lưu bài viết');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -209,9 +236,13 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
             <Eye className="h-4 w-4 mr-2" />
             Xem trước
           </Button>
-          <Button onClick={handleSave} className="bg-[#93E1D8] hover:bg-[#93E1D8]/90">
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving}
+            className="bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+          >
             <Save className="h-4 w-4 mr-2" />
-            {post ? 'Cập nhật' : 'Lưu'}
+            {isSaving ? 'Đang lưu...' : (post ? 'Cập nhật' : 'Lưu')}
           </Button>
           <Button variant="outline" onClick={onCancel}>
             <X className="h-4 w-4 mr-2" />
