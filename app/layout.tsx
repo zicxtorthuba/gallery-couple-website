@@ -4,7 +4,6 @@ import { Inter, Cormorant_Garamond } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { EdgeStoreProvider } from '@/lib/edgestore';
-import { SessionProvider } from 'next-auth/react';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -33,18 +32,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${cormorant.variable} font-sans`}>
-        <SessionProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-          >
-            <EdgeStoreProvider>
-              {children}
-              <Toaster />
-            </EdgeStoreProvider>
-          </ThemeProvider>
-        </SessionProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+        >
+          <EdgeStoreProvider>
+            {children}
+            <Toaster />
+          </EdgeStoreProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

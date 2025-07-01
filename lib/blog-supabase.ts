@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { getStoredUser } from './auth';
+import { getCurrentUser } from './auth';
 
 export interface BlogPost {
   id: string;
@@ -125,7 +125,7 @@ export const getBlogPost = async (id: string): Promise<BlogPost | null> => {
 
 export const createBlogPost = async (postData: Partial<BlogPost>): Promise<BlogPost | null> => {
   try {
-    const user = getStoredUser();
+    const user = await getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
     const now = new Date().toISOString();
@@ -190,7 +190,7 @@ export const createBlogPost = async (postData: Partial<BlogPost>): Promise<BlogP
 
 export const updateBlogPost = async (postId: string, updates: Partial<BlogPost>): Promise<BlogPost | null> => {
   try {
-    const user = getStoredUser();
+    const user = await getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
     // Get current post for revision history
@@ -277,7 +277,7 @@ export const updateBlogPost = async (postId: string, updates: Partial<BlogPost>)
 
 export const deleteBlogPost = async (postId: string): Promise<boolean> => {
   try {
-    const user = getStoredUser();
+    const user = await getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
     const { error } = await supabase

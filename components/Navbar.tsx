@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession, signOut } from 'next-auth/react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,10 +13,12 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Settings, Heart } from "lucide-react";
+import { getCurrentUser, signOut, onAuthStateChange, type AuthUser } from "@/lib/auth";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const { data: session, status } = useSession();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,13 +27,34 @@ export function Navbar() {
 
     window.addEventListener("scroll", handleScroll);
 
+    // Check initial auth state
+    const checkAuth = async () => {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+      setLoading(false);
+    };
+
+    checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = onAuthStateChange((user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      subscription?.unsubscribe();
     };
   }, []);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/' });
+    try {
+      await signOut();
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -57,18 +79,18 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
-          {status === 'loading' ? (
+          {loading ? (
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
-          ) : session ? (
+          ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    {session.user?.image ? (
-                      <AvatarImage src={session.user.image} alt={session.user.name || ''} />
+                    {user.image ? (
+                      <AvatarImage src={user.image} alt={user.name} />
                     ) : (
                       <AvatarFallback className="bg-[#93E1D8] text-white">
-                        {session.user?.name?.[0]?.toUpperCase() || 'U'}
+                        {user.name[0].toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>
@@ -77,9 +99,9 @@ export function Navbar() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{session.user?.name}</p>
+                    <p className="font-medium">{user.name}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {session.user?.email}
+                      {user.email}
                     </p>
                   </div>
                 </div>
@@ -120,7 +142,7 @@ export function Navbar() {
               </Button>
             </Link>
           )}
-          <MobileMenu session={session} onLogout={handleLogout} />
+          <MobileMenu user={user} onLogout={handleLogout} />
         </div>
       </div>
     </header>
@@ -138,7 +160,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-function MobileMenu({ session, onLogout }: { session: any; onLogout: () => void }) {
+function MobileMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -227,7 +249,7 @@ function MobileMenu({ session, onLogout }: { session: any; onLogout: () => void 
                 Liên hệ
               </Link>
               
-              {session ? (
+              {user ? (
                 <>
                   <Link
                     href="/personal"

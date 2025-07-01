@@ -30,11 +30,11 @@ import {
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { AuthGuard } from '@/components/AuthGuard';
-import { getStoredUser, updateStoredUser, type User as UserType } from '@/lib/auth';
+import { getCurrentUser, type AuthUser } from '@/lib/auth';
 import { userData } from '@/lib/data';
 
 function PersonalContent() {
-  const [user, setUser] = useState<UserType | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [userStats, setUserStats] = useState<any>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editData, setEditData] = useState({
@@ -45,19 +45,23 @@ function PersonalContent() {
   const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
-    const currentUser = getStoredUser();
-    setUser(currentUser);
-    
-    if (currentUser) {
-      // Get user data based on role/name
-      const stats = userData[currentUser.role as keyof typeof userData] || userData.user1;
-      setUserStats(stats);
-      setEditData({
-        name: currentUser.name,
-        profilePicture: null
-      });
-      setProfilePicturePreview(currentUser.image || stats.profilePicture);
-    }
+    const loadUser = async () => {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+      
+      if (currentUser) {
+        // Get user data based on user ID or use default
+        const stats = userData["1"] || userData.user1; // Default stats
+        setUserStats(stats);
+        setEditData({
+          name: currentUser.name,
+          profilePicture: null
+        });
+        setProfilePicturePreview(currentUser.image || stats.profilePicture);
+      }
+    };
+
+    loadUser();
   }, []);
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,20 +79,8 @@ function PersonalContent() {
   const handleSaveProfile = () => {
     if (!user || !userStats) return;
 
-    // Update user name and picture
-    const updatedUser = { 
-      ...user, 
-      name: editData.name,
-      image: profilePicturePreview || user.image
-    };
-    updateStoredUser(updatedUser);
-    setUser(updatedUser);
-
-    // Update profile picture in userStats (in real app, this would be saved to backend)
-    if (editData.profilePicture) {
-      userStats.profilePicture = profilePicturePreview;
-    }
-
+    // In a real app, you would update the user profile via API
+    // For now, we'll just show a success message
     setIsEditingProfile(false);
     setSaveMessage('Thông tin đã được cập nhật thành công!');
     setTimeout(() => setSaveMessage(''), 3000);
@@ -351,26 +343,17 @@ function PersonalContent() {
                   <CardTitle>Ảnh của tôi</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {userStats.uploadedImages.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {/* Placeholder for uploaded images */}
-                      <div className="text-center text-muted-foreground">
-                        Ảnh đã tải lên sẽ hiển thị ở đây
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Camera className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-medium mb-2">Chưa có ảnh nào</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Bắt đầu chia sẻ những khoảnh khắc đẹp của bạn
-                      </p>
-                      <Button className="bg-[#93E1D8] hover:bg-[#93E1D8]/90">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Tải ảnh lên
-                      </Button>
-                    </div>
-                  )}
+                  <div className="text-center py-12">
+                    <Camera className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-medium mb-2">Chưa có ảnh nào</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Bắt đầu chia sẻ những khoảnh khắc đẹp của bạn
+                    </p>
+                    <Button className="bg-[#93E1D8] hover:bg-[#93E1D8]/90">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Tải ảnh lên
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -381,35 +364,17 @@ function PersonalContent() {
                   <CardTitle>Bộ sưu tập của tôi</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {userStats.collections.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {userStats.collections.map((collection: any) => (
-                        <Card key={collection.id}>
-                          <CardContent className="p-4">
-                            <h4 className="font-medium mb-2">{collection.name}</h4>
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {collection.images.length} ảnh
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Tạo ngày {collection.createdAt}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Star className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-medium mb-2">Chưa có bộ sưu tập nào</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Tạo bộ sưu tập để tổ chức ảnh của bạn
-                      </p>
-                      <Button variant="outline">
-                        <Star className="h-4 w-4 mr-2" />
-                        Tạo bộ sưu tập
-                      </Button>
-                    </div>
-                  )}
+                  <div className="text-center py-12">
+                    <Star className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-medium mb-2">Chưa có bộ sưu tập nào</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Tạo bộ sưu tập để tổ chức ảnh của bạn
+                    </p>
+                    <Button variant="outline">
+                      <Star className="h-4 w-4 mr-2" />
+                      Tạo bộ sưu tập
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

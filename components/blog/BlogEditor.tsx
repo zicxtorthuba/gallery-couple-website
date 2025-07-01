@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useEdgeStore } from '@/lib/edgestore';
 import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag } from '@/lib/blog-supabase';
+import { getCurrentUser } from '@/lib/auth';
 
 interface BlogEditorProps {
   post?: BlogPost;
@@ -47,7 +47,7 @@ const iconOptions = [
 ];
 
 export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
-  const { data: session } = useSession();
+  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: post?.title || '',
     content: post?.content || '',
@@ -71,7 +71,13 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
 
   useEffect(() => {
     loadTags();
+    loadUser();
   }, []);
+
+  const loadUser = async () => {
+    const currentUser = await getCurrentUser();
+    setUser(currentUser);
+  };
 
   const loadTags = async () => {
     try {
@@ -158,7 +164,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   };
 
   const handleSave = async () => {
-    if (!validateForm() || !session?.user || isSaving) return;
+    if (!validateForm() || !user || isSaving) return;
 
     try {
       setIsSaving(true);
@@ -181,9 +187,9 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           customIcon: formData.customIcon || undefined,
           tags: formData.tags,
           status: formData.status,
-          author: session.user.name || 'Unknown',
-          authorId: session.user.id || '',
-          authorAvatar: session.user.image || ''
+          author: user.name,
+          authorId: user.id,
+          authorAvatar: user.image || ''
         });
       }
       
@@ -210,7 +216,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
 
   const SelectedIcon = getSelectedIcon();
 
-  if (!session) {
+  if (!user) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center py-12">
@@ -531,7 +537,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
               <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                 <div className="flex items-center gap-1">
                   <User className="h-4 w-4" />
-                  <span>{session.user?.name}</span>
+                  <span>{user?.name}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
