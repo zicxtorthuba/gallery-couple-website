@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Heart, 
   Search, 
@@ -25,7 +26,9 @@ import {
   Trash2,
   Tag,
   Camera,
-  ImageIcon
+  ImageIcon,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import { galleryImages } from '@/lib/data';
 import { Navbar } from '@/components/Navbar';
@@ -57,6 +60,7 @@ function GalleryContent() {
   const [favoriteImages, setFavoriteImages] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [message, setMessage] = useState('');
   const { edgestore } = useEdgeStore();
   const [uploadData, setUploadData] = useState({
     title: '',
@@ -165,6 +169,8 @@ function GalleryContent() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
+      setMessage('Lỗi khi tải ảnh về');
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
@@ -209,8 +215,12 @@ function GalleryContent() {
         file: null,
       });
       setShowUploadDialog(false);
+      setMessage('Ảnh đã được tải lên thành công!');
+      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Image upload failed:', error);
+      setMessage('Lỗi khi tải ảnh lên');
+      setTimeout(() => setMessage(''), 3000);
     } finally {
       setLoading(false);
     }
@@ -241,6 +251,8 @@ function GalleryContent() {
 
     setEditingImage(null);
     setEditData({ title: '', description: '', tags: '' });
+    setMessage('Ảnh đã được cập nhật!');
+    setTimeout(() => setMessage(''), 3000);
   };
 
   const handleDelete = async (imageId: string) => {
@@ -249,16 +261,32 @@ function GalleryContent() {
 
     try {
       setLoading(true);
-      // Remove from EdgeStore bucket
-      await edgestore.images.delete({
-        url: imageToDelete.url,
-      });
+      
+      // Only try to delete from EdgeStore if it's an EdgeStore URL
+      if (imageToDelete.url.includes('edgestore') || imageToDelete.url.includes('files.edgestore.dev')) {
+        try {
+          console.log('Attempting to delete from EdgeStore:', imageToDelete.url);
+          await edgestore.images.delete({
+            url: imageToDelete.url,
+          });
+          console.log('Successfully deleted from EdgeStore');
+        } catch (edgeStoreError: any) {
+          console.warn('EdgeStore deletion failed (this is OK for external URLs):', edgeStoreError.message);
+          // Don't throw error here - we still want to remove from UI even if EdgeStore deletion fails
+        }
+      } else {
+        console.log('Skipping EdgeStore deletion for external URL:', imageToDelete.url);
+      }
 
-      // Remove from UI state
+      // Always remove from UI state regardless of EdgeStore deletion result
       setImages(prev => prev.filter(img => img.id !== imageId));
       setSelectedImage(null);
-    } catch (error) {
+      setMessage('Ảnh đã được xóa!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error: any) {
       console.error('Delete failed:', error);
+      setMessage(`Lỗi khi xóa ảnh: ${error.message || 'Unknown error'}`);
+      setTimeout(() => setMessage(''), 3000);
     } finally {
       setLoading(false);
     }
@@ -281,6 +309,20 @@ function GalleryContent() {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4">
+          {/* Success/Error Messages */}
+          {message && (
+            <Alert className={`mb-6 ${message.includes('Lỗi') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
+              {message.includes('Lỗi') ? (
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              )}
+              <AlertDescription className={message.includes('Lỗi') ? 'text-red-700' : 'text-green-700'}>
+                {message}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4">
@@ -384,16 +426,17 @@ function GalleryContent() {
                   <div className="flex gap-2 pt-4">
                     <Button 
                       onClick={handleUpload}
-                      disabled={!uploadData.file || !uploadData.title}
+                      disabled={!uploadData.file || !uploadData.title || loading}
                       className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
                     >
                       <Camera className="h-4 w-4 mr-2" />
-                      Tải lên
+                      {loading ? 'Đang tải...' : 'Tải lên'}
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={() => setShowUploadDialog(false)}
                       className="flex-1"
+                      disabled={loading}
                     >
                       Hủy
                     </Button>
@@ -612,7 +655,7 @@ function GalleryContent() {
             <div className="text-center py-8">
               <div className="inline-flex items-center gap-2 text-muted-foreground">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#93E1D8]"></div>
-                Đang tải thêm ảnh...
+                Đang xử lý...
               </div>
             </div>
           )}
@@ -661,6 +704,7 @@ function GalleryContent() {
                       variant="outline"
                       onClick={() => handleDelete(selectedImage.id)}
                       className="text-red-500 hover:bg-red-50"
+                      disabled={loading}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
