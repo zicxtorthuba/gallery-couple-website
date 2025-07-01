@@ -14,7 +14,12 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (error || !user) return null;
+    if (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+    
+    if (!user) return null;
     
     return {
       id: user.id,
@@ -43,7 +48,11 @@ export const signInWithGoogle = async () => {
       }
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Google sign in error:', error);
+      throw error;
+    }
+    
     return data;
   } catch (error) {
     console.error('Error signing in with Google:', error);
@@ -55,7 +64,16 @@ export const signInWithGoogle = async () => {
 export const signOut = async () => {
   try {
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (error) {
+      console.error('Sign out error:', error);
+      throw error;
+    }
+    
+    // Clear any additional cookies
+    if (typeof window !== 'undefined') {
+      document.cookie = 'sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'sb-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    }
   } catch (error) {
     console.error('Error signing out:', error);
     throw error;
@@ -64,13 +82,20 @@ export const signOut = async () => {
 
 // Check if user is authenticated
 export const isAuthenticated = async (): Promise<boolean> => {
-  const user = await getCurrentUser();
-  return !!user;
+  try {
+    const user = await getCurrentUser();
+    return !!user;
+  } catch (error) {
+    console.error('Error checking authentication:', error);
+    return false;
+  }
 };
 
 // Listen to auth state changes
 export const onAuthStateChange = (callback: (user: AuthUser | null) => void) => {
   return supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth state change:', event, !!session);
+    
     if (session?.user) {
       const authUser: AuthUser = {
         id: session.user.id,

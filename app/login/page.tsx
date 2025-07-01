@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import Iridescence from "@/components/ui/Iridescence";
 import { signInWithGoogle, getCurrentUser } from '@/lib/auth';
 
@@ -13,35 +13,69 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     // Check for error in URL params
     const errorParam = searchParams.get('error');
+    const errorMessage = searchParams.get('message');
+    
     if (errorParam) {
+      let errorText = '';
       switch (errorParam) {
         case 'auth_callback_error':
-          setError('Có lỗi xảy ra trong quá trình xác thực. Vui lòng thử lại.');
+          errorText = 'Lỗi xử lý callback từ Google. Vui lòng thử lại.';
           break;
         case 'auth_error':
-          setError('Lỗi xác thực. Vui lòng thử lại.');
+          errorText = 'Lỗi xác thực. Vui lòng thử lại.';
           break;
         case 'no_code':
-          setError('Không nhận được mã xác thực từ Google.');
+          errorText = 'Không nhận được mã xác thực từ Google. Vui lòng thử lại.';
+          break;
+        case 'no_session':
+          errorText = 'Không thể tạo phiên đăng nhập. Vui lòng thử lại.';
+          break;
+        case 'user_cancelled':
+          errorText = 'Bạn đã hủy quá trình đăng nhập.';
+          break;
+        case 'oauth_error':
+          errorText = 'Lỗi OAuth từ Google.';
+          break;
+        case 'callback_exception':
+          errorText = 'Lỗi xử lý callback.';
           break;
         default:
-          setError('Có lỗi xảy ra. Vui lòng thử lại.');
+          errorText = 'Có lỗi xảy ra. Vui lòng thử lại.';
       }
+      
+      if (errorMessage) {
+        setDebugInfo(`Chi tiết: ${decodeURIComponent(errorMessage)}`);
+      }
+      
+      setError(errorText);
+      
+      // Clear error from URL after showing it
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('error');
+      newUrl.searchParams.delete('message');
+      window.history.replaceState({}, '', newUrl.toString());
     }
 
     // Check if user is already authenticated
     const checkAuth = async () => {
-      const user = await getCurrentUser();
-      if (user) {
-        router.push('/');
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          console.log('User already authenticated:', user.email);
+          router.push('/');
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error);
       }
     };
+    
     checkAuth();
   }, [router, searchParams]);
 
@@ -49,18 +83,26 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       setError(null);
+      setDebugInfo('');
+      
+      console.log('Starting Google sign in...');
       await signInWithGoogle();
       
-      // Show success message briefly
-      setShowSuccess(true);
-      setTimeout(() => {
-        router.push('/');
-      }, 2000);
+      // The redirect will happen automatically via OAuth flow
+      // If we reach here, something might be wrong
+      console.log('Sign in initiated, waiting for redirect...');
+      
     } catch (error: any) {
       console.error('Sign in error:', error);
       setError(error.message || 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.');
+      setDebugInfo(`Lỗi: ${error.message || 'Unknown error'}`);
       setIsLoading(false);
     }
+  };
+
+  const clearError = () => {
+    setError(null);
+    setDebugInfo('');
   };
 
   if (showSuccess) {
@@ -130,7 +172,22 @@ export default function LoginPage() {
               <Alert className="border-red-200 bg-red-50">
                 <AlertTriangle className="h-4 w-4 text-red-500" />
                 <AlertDescription className="text-red-700">
-                  {error}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{error}</p>
+                      {debugInfo && (
+                        <p className="text-xs mt-1 opacity-75">{debugInfo}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearError}
+                      className="text-red-500 hover:text-red-700 p-1 h-auto"
+                    >
+                      ×
+                    </Button>
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
@@ -148,6 +205,28 @@ export default function LoginPage() {
               )}
               {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập với Google'}
             </Button>
+
+            {/* Retry Button */}
+            {error && (
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+                className="w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Thử lại
+              </Button>
+            )}
+
+            {/* Debug Info */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
+                <p><strong>Debug Info:</strong></p>
+                <p>URL: {window.location.href}</p>
+                <p>Origin: {window.location.origin}</p>
+                <p>Callback URL: {window.location.origin}/auth/callback</p>
+              </div>
+            )}
 
             {/* Security Notice */}
             <div className="mt-8 p-4 bg-gray-50/80 rounded-xl">
