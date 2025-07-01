@@ -18,9 +18,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     fetch: (url, options = {}) => {
-      // Add timeout and retry logic to fetch requests
+      // Enhanced fetch with better timeout and retry logic
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15 seconds
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased to 20 seconds
       
       return fetch(url, {
         ...options,

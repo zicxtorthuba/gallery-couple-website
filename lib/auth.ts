@@ -9,11 +9,15 @@ export interface AuthUser {
   role?: string;
 }
 
-// Retry utility function
+// Session management utilities
+const SESSION_STORAGE_KEY = 'supabase.auth.session';
+const SESSION_CHECK_INTERVAL = 30000; // 30 seconds
+
+// Retry utility function with exponential backoff
 const retryOperation = async <T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
-  delay: number = 1000
+  baseDelay: number = 1000
 ): Promise<T> => {
   let lastError: Error;
   
@@ -25,7 +29,8 @@ const retryOperation = async <T>(
       console.warn(`Operation failed (attempt ${i + 1}/${maxRetries}):`, error.message);
       
       if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+        const delay = baseDelay * Math.pow(2, i); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
@@ -33,14 +38,55 @@ const retryOperation = async <T>(
   throw lastError!;
 };
 
-// Get current user session with retry logic
+// Enhanced session validation
+const validateSession = async (): Promise<User | null> => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Session validation error:', error);
+      return null;
+    }
+    
+    if (!session || !session.user) {
+      return null;
+    }
+    
+    // Check if session is expired
+    const now = Math.floor(Date.now() / 1000);
+    if (session.expires_at && session.expires_at < now) {
+      console.log('Session expired, attempting refresh...');
+      
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshData.session) {
+        console.error('Session refresh failed:', refreshError);
+        return null;
+      }
+      
+      return refreshData.session.user;
+    }
+    
+    return session.user;
+  } catch (error) {
+    console.error('Session validation failed:', error);
+    return null;
+  }
+};
+
+// Get current user session with enhanced error handling
 export const getCurrentUser = async (): Promise<AuthUser | null> => {
   try {
-    const result = await retryOperation(async () => {
+    const user = await retryOperation(async () => {
+      // First try to validate existing session
+      const sessionUser = await validateSession();
+      if (sessionUser) {
+        return sessionUser;
+      }
+      
+      // If no valid session, try to get user directly
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
-        // If it's a network error, throw to trigger retry
         if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
           throw new Error(`Network error: ${error.message}`);
         }
@@ -51,33 +97,40 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
       return user;
     }, 3, 1000);
     
-    if (!result) return null;
+    if (!user) return null;
     
-    return {
-      id: result.id,
-      name: result.user_metadata?.full_name || result.user_metadata?.name || result.email?.split('@')[0] || 'User',
-      email: result.email || '',
-      image: result.user_metadata?.avatar_url || result.user_metadata?.picture,
-      role: result.user_metadata?.role || 'user'
+    const authUser: AuthUser = {
+      id: user.id,
+      name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+      email: user.email || '',
+      image: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+      role: user.user_metadata?.role || 'user'
     };
+    
+    // Cache the session for faster subsequent access
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+        user: authUser,
+        timestamp: Date.now()
+      }));
+    }
+    
+    return authUser;
   } catch (error: any) {
     console.error('Error getting current user after retries:', error);
     
-    // Check if we have cached session data in localStorage as fallback
+    // Check for cached session as fallback (only if recent)
     if (typeof window !== 'undefined') {
       try {
-        const cachedSession = localStorage.getItem('supabase.auth.token');
-        if (cachedSession) {
-          console.log('Using cached session data as fallback');
-          const parsed = JSON.parse(cachedSession);
-          if (parsed.user) {
-            return {
-              id: parsed.user.id,
-              name: parsed.user.user_metadata?.full_name || parsed.user.user_metadata?.name || parsed.user.email?.split('@')[0] || 'User',
-              email: parsed.user.email || '',
-              image: parsed.user.user_metadata?.avatar_url || parsed.user.user_metadata?.picture,
-              role: parsed.user.user_metadata?.role || 'user'
-            };
+        const cached = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (cached) {
+          const { user, timestamp } = JSON.parse(cached);
+          const age = Date.now() - timestamp;
+          
+          // Use cached session if less than 5 minutes old
+          if (age < 5 * 60 * 1000 && user) {
+            console.log('Using cached session data as fallback');
+            return user;
           }
         }
       } catch (cacheError) {
@@ -92,9 +145,14 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
 // Alias for backward compatibility
 export const getStoredUser = getCurrentUser;
 
-// Sign in with Google with improved error handling
+// Enhanced Google sign in with better error handling
 export const signInWithGoogle = async () => {
   try {
+    // Clear any existing session data first
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+    
     const result = await retryOperation(async () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -104,6 +162,7 @@ export const signInWithGoogle = async () => {
             access_type: 'offline',
             prompt: 'select_account',
           },
+          skipBrowserRedirect: false
         }
       });
       
@@ -115,8 +174,9 @@ export const signInWithGoogle = async () => {
       }
       
       return data;
-    }, 3, 2000);
+    }, 2, 2000);
     
+    console.log('Google OAuth initiated successfully');
     return result;
   } catch (error: any) {
     console.error('Error signing in with Google after retries:', error);
@@ -126,13 +186,15 @@ export const signInWithGoogle = async () => {
       throw new Error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối internet và thử lại.');
     } else if (error.message.includes('redirect_uri_mismatch')) {
       throw new Error('Cấu hình OAuth chưa đúng. Vui lòng liên hệ quản trị viên.');
+    } else if (error.message.includes('popup_blocked')) {
+      throw new Error('Trình duyệt đã chặn popup. Vui lòng cho phép popup và thử lại.');
     } else {
       throw new Error(error.message || 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.');
     }
   }
 };
 
-// Sign out with improved error handling
+// Enhanced sign out with better cleanup
 export const signOut = async () => {
   try {
     await retryOperation(async () => {
@@ -151,16 +213,16 @@ export const signOut = async () => {
   } finally {
     // Always clear local data regardless of server response
     if (typeof window !== 'undefined') {
-      // Clear Supabase cookies
-      document.cookie = 'sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = 'sb-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      
-      // Clear localStorage
+      // Clear all Supabase related data
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('supabase.auth.')) {
+        if (key.startsWith('supabase.auth.') || key === SESSION_STORAGE_KEY) {
           localStorage.removeItem(key);
         }
       });
+      
+      // Clear cookies
+      document.cookie = 'sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'sb-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       
       // Force reload to clear any cached state
       window.location.href = '/';
@@ -179,27 +241,123 @@ export const isAuthenticated = async (): Promise<boolean> => {
   }
 };
 
-// Listen to auth state changes with improved error handling
+// Enhanced auth state change listener
 export const onAuthStateChange = (callback: (user: AuthUser | null) => void) => {
-  return supabase.auth.onAuthStateChange(async (event, session) => {
+  let timeoutId: NodeJS.Timeout;
+  
+  const handleAuthChange = async (event: string, session: any) => {
     console.log('Auth state change:', event, !!session);
     
-    try {
-      if (session?.user) {
-        const authUser: AuthUser = {
-          id: session.user.id,
-          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || '',
-          image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
-          role: session.user.user_metadata?.role || 'user'
-        };
-        callback(authUser);
-      } else {
+    // Clear any pending timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    
+    // Debounce rapid auth state changes
+    timeoutId = setTimeout(async () => {
+      try {
+        if (session?.user) {
+          const authUser: AuthUser = {
+            id: session.user.id,
+            name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+            role: session.user.user_metadata?.role || 'user'
+          };
+          
+          // Cache the session
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+              user: authUser,
+              timestamp: Date.now()
+            }));
+          }
+          
+          callback(authUser);
+        } else {
+          // Clear cached session
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+          }
+          callback(null);
+        }
+      } catch (error) {
+        console.error('Error in auth state change handler:', error);
         callback(null);
       }
+    }, 100); // 100ms debounce
+  };
+  
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+  
+  return {
+    data: { subscription: {
+      ...subscription,
+      unsubscribe: () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        subscription.unsubscribe();
+      }
+    }}
+  };
+};
+
+// Utility to check if we're in the middle of an OAuth flow
+export const isOAuthCallback = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const hash = window.location.hash;
+  const search = window.location.search;
+  
+  return (
+    hash.includes('access_token') ||
+    search.includes('code=') ||
+    search.includes('error=')
+  );
+};
+
+// Utility to handle OAuth callback manually
+export const handleOAuthCallback = async (): Promise<boolean> => {
+  if (typeof window === 'undefined') return false;
+  
+  const hash = window.location.hash;
+  
+  if (hash && hash.includes('access_token')) {
+    try {
+      console.log('Processing OAuth callback...');
+      
+      // Extract tokens from URL fragment
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      
+      if (accessToken) {
+        // Set the session using the tokens from URL
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        });
+        
+        if (error) {
+          console.error('Error setting session:', error);
+          throw error;
+        }
+        
+        if (data.user) {
+          console.log('OAuth callback processed successfully');
+          
+          // Clear the URL hash
+          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          return true;
+        }
+      }
     } catch (error) {
-      console.error('Error in auth state change handler:', error);
-      callback(null);
+      console.error('Error processing OAuth callback:', error);
+      throw error;
     }
-  });
+  }
+  
+  return false;
 };

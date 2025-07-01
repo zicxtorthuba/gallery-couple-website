@@ -7,7 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle, RefreshCw, Wifi, WifiOff, Globe } from "lucide-react";
 import Iridescence from "@/components/ui/Iridescence";
-import { signInWithGoogle, getCurrentUser, onAuthStateChange } from '@/lib/auth';
+import { 
+  signInWithGoogle, 
+  getCurrentUser, 
+  onAuthStateChange, 
+  isOAuthCallback, 
+  handleOAuthCallback 
+} from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
@@ -19,225 +25,170 @@ export default function LoginPage() {
   const [isOnline, setIsOnline] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected' | 'slow'>('checking');
   const [supabaseConnected, setSupabaseConnected] = useState<boolean | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
+    initializeAuth();
+  }, []);
 
-    // Enhanced connection checking
-    const checkConnection = async () => {
-      try {
-        setConnectionStatus('checking');
-        
-        // Test 1: Basic internet connectivity
-        const startTime = Date.now();
-        const response = await Promise.race([
-          fetch('https://www.google.com/favicon.ico', { 
-            method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'no-cors'
-          }),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 5000)
-          )
-        ]);
-        
-        const responseTime = Date.now() - startTime;
-        
-        // Test 2: Supabase connectivity
-        try {
-          const { data, error } = await supabase.from('blog_posts').select('id').limit(1);
-          setSupabaseConnected(!error);
-        } catch (supabaseError) {
-          setSupabaseConnected(false);
-          console.warn('Supabase connection test failed:', supabaseError);
-        }
-        
-        setIsOnline(true);
-        setConnectionStatus(responseTime > 3000 ? 'slow' : 'connected');
-        
-      } catch (error) {
-        console.warn('Connection check failed:', error);
-        setIsOnline(false);
-        setConnectionStatus('disconnected');
-        setSupabaseConnected(false);
-      }
-    };
-
-    checkConnection();
-
-    // Listen for online/offline events
-    const handleOnline = () => {
-      setIsOnline(true);
-      setError(null);
-      checkConnection();
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      setConnectionStatus('disconnected');
-      setSupabaseConnected(false);
-      setError('Mất kết nối internet. Vui lòng kiểm tra kết nối và thử lại.');
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Handle OAuth callback with tokens in URL fragment
-    const handleOAuthCallback = async () => {
-      const hash = window.location.hash;
+  const initializeAuth = async () => {
+    try {
+      console.log('Initializing authentication...');
       
-      if (hash && hash.includes('access_token')) {
-        console.log('OAuth callback detected with tokens in URL');
+      // Check connection first
+      await checkConnection();
+      
+      // Handle OAuth callback if present
+      if (isOAuthCallback()) {
+        console.log('OAuth callback detected');
         setIsLoading(true);
         
         try {
-          // Extract tokens from URL fragment
-          const params = new URLSearchParams(hash.substring(1));
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-          
-          if (accessToken) {
-            console.log('Setting session with tokens from URL');
-            
-            // Set the session using the tokens from URL
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-            
-            if (error) {
-              console.error('Error setting session:', error);
-              if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
-                setError('Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.');
-              } else {
-                setError('Lỗi xử lý phiên đăng nhập. Vui lòng thử lại.');
-              }
-              setDebugInfo(`Chi tiết: ${error.message}`);
-            } else if (data.user) {
-              console.log('Session set successfully, user:', data.user.email);
-              
-              // Clear the URL hash
-              window.history.replaceState({}, document.title, window.location.pathname);
-              
-              setShowSuccess(true);
-              setTimeout(() => {
-                router.push('/');
-              }, 2000);
-            } else {
-              setError('Không thể tạo phiên đăng nhập. Vui lòng thử lại.');
-            }
-          } else {
-            setError('Không nhận được token từ Google. Vui lòng thử lại.');
-          }
-        } catch (error: any) {
-          console.error('Error handling OAuth callback:', error);
-          if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
-            setError('Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.');
-          } else {
-            setError('Lỗi xử lý callback từ Google. Vui lòng thử lại.');
-          }
-          setDebugInfo(`Chi tiết: ${error.message}`);
-        } finally {
-          setIsLoading(false);
-        }
-        
-        return true;
-      }
-      
-      return false;
-    };
-
-    // Check for error in URL params
-    const errorParam = searchParams.get('error');
-    const errorMessage = searchParams.get('message');
-    
-    if (errorParam) {
-      let errorText = '';
-      switch (errorParam) {
-        case 'auth_callback_error':
-          errorText = 'Lỗi xử lý callback từ Google. Vui lòng thử lại.';
-          break;
-        case 'auth_error':
-          errorText = 'Lỗi xác thực. Vui lòng thử lại.';
-          break;
-        case 'no_code':
-          errorText = 'Không nhận được mã xác thực từ Google. Vui lòng thử lại.';
-          break;
-        case 'no_session':
-          errorText = 'Không thể tạo phiên đăng nhập. Vui lòng thử lại.';
-          break;
-        case 'user_cancelled':
-          errorText = 'Bạn đã hủy quá trình đăng nhập.';
-          break;
-        case 'oauth_error':
-          errorText = 'Lỗi OAuth từ Google.';
-          break;
-        case 'callback_exception':
-          errorText = 'Lỗi xử lý callback.';
-          break;
-        default:
-          errorText = 'Có lỗi xảy ra. Vui lòng thử lại.';
-      }
-      
-      if (errorMessage) {
-        setDebugInfo(`Chi tiết: ${decodeURIComponent(errorMessage)}`);
-      }
-      
-      setError(errorText);
-      
-      // Clear error from URL after showing it
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('error');
-      newUrl.searchParams.delete('message');
-      window.history.replaceState({}, '', newUrl.toString());
-      return;
-    }
-
-    // Handle OAuth callback first
-    const handledCallback = handleOAuthCallback();
-    
-    if (!handledCallback) {
-      // Check if user is already authenticated
-      const checkAuth = async () => {
-        try {
-          const user = await getCurrentUser();
-          if (user) {
-            console.log('User already authenticated:', user.email);
+          const success = await handleOAuthCallback();
+          if (success) {
             setShowSuccess(true);
             setTimeout(() => {
               router.push('/');
             }, 2000);
+            return;
           }
         } catch (error: any) {
-          console.error('Error checking auth:', error);
-          if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
-            setError('Lỗi kết nối mạng khi kiểm tra đăng nhập. Vui lòng thử lại.');
-          }
+          console.error('OAuth callback error:', error);
+          setError('Lỗi xử lý đăng nhập từ Google. Vui lòng thử lại.');
+          setDebugInfo(`Chi tiết: ${error.message}`);
+        } finally {
+          setIsLoading(false);
         }
-      };
+      }
       
-      checkAuth();
-    }
-
-    // Listen for auth state changes
-    const { data: { subscription } } = onAuthStateChange((user) => {
-      if (user && !showSuccess) {
-        console.log('User authenticated via state change:', user.email);
+      // Check for URL error parameters
+      const errorParam = searchParams.get('error');
+      const errorMessage = searchParams.get('message');
+      
+      if (errorParam) {
+        handleUrlError(errorParam, errorMessage);
+        return;
+      }
+      
+      // Check if user is already authenticated
+      const user = await getCurrentUser();
+      if (user) {
+        console.log('User already authenticated:', user.email);
         setShowSuccess(true);
         setTimeout(() => {
           router.push('/');
-        }, 2000);
+        }, 1500);
+        return;
       }
-    });
+      
+      // Set up auth state listener
+      const { data: { subscription } } = onAuthStateChange((user) => {
+        if (user && !showSuccess) {
+          console.log('User authenticated via state change:', user.email);
+          setShowSuccess(true);
+          setTimeout(() => {
+            router.push('/');
+          }, 2000);
+        }
+      });
+      
+      // Cleanup function
+      return () => {
+        subscription?.unsubscribe();
+      };
+      
+    } catch (error: any) {
+      console.error('Auth initialization error:', error);
+      if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+        setError('Lỗi kết nối mạng khi khởi tạo. Vui lòng thử lại.');
+      }
+    } finally {
+      setAuthInitialized(true);
+    }
+  };
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      subscription?.unsubscribe();
-    };
-  }, [router, searchParams, showSuccess]);
+  const checkConnection = async () => {
+    try {
+      setConnectionStatus('checking');
+      
+      // Test basic internet connectivity
+      const startTime = Date.now();
+      await Promise.race([
+        fetch('https://www.google.com/favicon.ico', { 
+          method: 'HEAD',
+          cache: 'no-cache',
+          mode: 'no-cors'
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 8000)
+        )
+      ]);
+      
+      const responseTime = Date.now() - startTime;
+      
+      // Test Supabase connectivity
+      try {
+        const { error } = await supabase.from('blog_posts').select('id').limit(1);
+        setSupabaseConnected(!error);
+      } catch (supabaseError) {
+        setSupabaseConnected(false);
+        console.warn('Supabase connection test failed:', supabaseError);
+      }
+      
+      setIsOnline(true);
+      setConnectionStatus(responseTime > 4000 ? 'slow' : 'connected');
+      
+    } catch (error) {
+      console.warn('Connection check failed:', error);
+      setIsOnline(false);
+      setConnectionStatus('disconnected');
+      setSupabaseConnected(false);
+    }
+  };
+
+  const handleUrlError = (errorParam: string, errorMessage: string | null) => {
+    let errorText = '';
+    switch (errorParam) {
+      case 'auth_callback_error':
+        errorText = 'Lỗi xử lý callback từ Google. Vui lòng thử lại.';
+        break;
+      case 'auth_error':
+        errorText = 'Lỗi xác thực. Vui lòng thử lại.';
+        break;
+      case 'no_code':
+        errorText = 'Không nhận được mã xác thực từ Google. Vui lòng thử lại.';
+        break;
+      case 'no_session':
+        errorText = 'Không thể tạo phiên đăng nhập. Vui lòng thử lại.';
+        break;
+      case 'user_cancelled':
+        errorText = 'Bạn đã hủy quá trình đăng nhập.';
+        break;
+      case 'oauth_error':
+        errorText = 'Lỗi OAuth từ Google.';
+        break;
+      case 'callback_exception':
+        errorText = 'Lỗi xử lý callback.';
+        break;
+      default:
+        errorText = 'Có lỗi xảy ra. Vui lòng thử lại.';
+    }
+    
+    if (errorMessage) {
+      setDebugInfo(`Chi tiết: ${decodeURIComponent(errorMessage)}`);
+    }
+    
+    setError(errorText);
+    
+    // Clear error from URL
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('error');
+    newUrl.searchParams.delete('message');
+    window.history.replaceState({}, '', newUrl.toString());
+  };
 
   const handleGoogleSignIn = async () => {
     if (!isOnline) {
@@ -256,9 +207,16 @@ export default function LoginPage() {
       setDebugInfo('');
       
       console.log('Starting Google sign in...');
+      
+      // Add a small delay to ensure UI updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       await signInWithGoogle();
       
-      console.log('Sign in initiated, waiting for redirect...');
+      console.log('Google OAuth initiated, waiting for redirect...');
+      
+      // The OAuth flow will handle the redirect automatically
+      // We don't need to do anything else here
       
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -283,8 +241,8 @@ export default function LoginPage() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
     
-    // Recheck connection
-    window.location.reload();
+    // Reinitialize auth
+    initializeAuth();
   };
 
   const getConnectionStatusIcon = () => {
@@ -317,7 +275,39 @@ export default function LoginPage() {
     }
   };
 
-  const canSignIn = isOnline && connectionStatus !== 'disconnected' && supabaseConnected !== false;
+  const canSignIn = isOnline && connectionStatus !== 'disconnected' && supabaseConnected !== false && authInitialized;
+
+  // Show loading while initializing
+  if (!mounted || !authInitialized) {
+    return (
+      <div className="min-h-screen relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <Iridescence
+            color={[1, 1, 1]}
+            mouseReact={false}
+            amplitude={0.1}
+            speed={1.0}
+          />
+        </div>
+
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-md backdrop-blur-sm bg-white/90 shadow-2xl border-0">
+            <CardContent className="text-center p-8">
+              <div className="w-16 h-16 bg-[#93E1D8]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
+              </div>
+              <h2 className="font-cormorant text-2xl font-light text-gray-800 mb-2">
+                Đang khởi tạo...
+              </h2>
+              <p className="text-muted-foreground">
+                Vui lòng chờ trong giây lát
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (showSuccess) {
     return (
@@ -489,6 +479,8 @@ export default function LoginPage() {
                 <p>Online: {isOnline ? 'Yes' : 'No'}</p>
                 <p>Connection: {connectionStatus}</p>
                 <p>Supabase: {supabaseConnected === null ? 'Unknown' : supabaseConnected ? 'Connected' : 'Disconnected'}</p>
+                <p>Auth Initialized: {authInitialized ? 'Yes' : 'No'}</p>
+                <p>OAuth Callback: {isOAuthCallback() ? 'Yes' : 'No'}</p>
                 <p>Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
                 {typeof window !== 'undefined' && window.location.hash && (
                   <p>Hash: {window.location.hash.substring(0, 100)}...</p>
