@@ -18,7 +18,7 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
     
     return {
       id: user.id,
-      name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+      name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
       email: user.email || '',
       image: user.user_metadata?.avatar_url || user.user_metadata?.picture,
       role: user.user_metadata?.role || 'user'
@@ -35,7 +35,11 @@ export const signInWithGoogle = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       }
     });
     
@@ -70,7 +74,7 @@ export const onAuthStateChange = (callback: (user: AuthUser | null) => void) => 
     if (session?.user) {
       const authUser: AuthUser = {
         id: session.user.id,
-        name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+        name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
         email: session.user.email || '',
         image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
         role: session.user.user_metadata?.role || 'user'

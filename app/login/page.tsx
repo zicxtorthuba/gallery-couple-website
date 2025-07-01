@@ -1,19 +1,40 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Chrome, Shield, Lock, Loader2, CheckCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import Iridescence from "@/components/ui/Iridescence";
 import { signInWithGoogle, getCurrentUser } from '@/lib/auth';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Check for error in URL params
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      switch (errorParam) {
+        case 'auth_callback_error':
+          setError('Có lỗi xảy ra trong quá trình xác thực. Vui lòng thử lại.');
+          break;
+        case 'auth_error':
+          setError('Lỗi xác thực. Vui lòng thử lại.');
+          break;
+        case 'no_code':
+          setError('Không nhận được mã xác thực từ Google.');
+          break;
+        default:
+          setError('Có lỗi xảy ra. Vui lòng thử lại.');
+      }
+    }
+
     // Check if user is already authenticated
     const checkAuth = async () => {
       const user = await getCurrentUser();
@@ -22,11 +43,12 @@ export default function LoginPage() {
       }
     };
     checkAuth();
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       await signInWithGoogle();
       
       // Show success message briefly
@@ -34,8 +56,9 @@ export default function LoginPage() {
       setTimeout(() => {
         router.push('/');
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error);
+      setError(error.message || 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.');
       setIsLoading(false);
     }
   };
@@ -102,6 +125,16 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {/* Error Alert */}
+            {error && (
+              <Alert className="border-red-200 bg-red-50">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <AlertDescription className="text-red-700">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Google Login */}
             <Button
               onClick={handleGoogleSignIn}
