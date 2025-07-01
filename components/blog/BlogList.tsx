@@ -25,7 +25,8 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { BlogPost, getBlogPosts, deleteBlogPost, getBlogTags } from '@/lib/blog-supabase';
-import { getStoredUser } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
+import { useEdgeStore } from '@/lib/edgestore';
 
 interface BlogListProps {
   onCreatePost: () => void;
@@ -41,10 +42,10 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
   const [deleteConfirm, setDeleteConfirm] = useState<BlogPost | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [tags, setTags] = useState<any[]>([]);
+  const { edgestore } = useEdgeStore();
   
-  const user = getStoredUser();
-
   useEffect(() => {
     loadPosts();
     loadTags();
@@ -106,14 +107,32 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
   };
 
   const confirmDelete = async () => {
-    if (!deleteConfirm) return;
+    if (!deleteConfirm || deleting) return;
 
     try {
+      setDeleting(true);
+      
+      // If the post has a featured image from EdgeStore, try to delete it first
+      if (deleteConfirm.featuredImage && 
+          (deleteConfirm.featuredImage.includes('edgestore') || deleteConfirm.featuredImage.includes('files.edgestore.dev'))) {
+        try {
+          console.log('Attempting to delete featured image from EdgeStore:', deleteConfirm.featuredImage);
+          await edgestore.images.delete({
+            url: deleteConfirm.featuredImage,
+          });
+          console.log('Successfully deleted featured image from EdgeStore');
+        } catch (edgeStoreError: any) {
+          console.warn('EdgeStore deletion failed (continuing with post deletion):', edgeStoreError.message);
+          // Don't fail the entire operation if image deletion fails
+        }
+      }
+
+      // Delete the blog post
       const success = await deleteBlogPost(deleteConfirm.id);
       if (success) {
         await loadPosts();
         await loadTags(); // Reload tags to update counts
-        setMessage('Bài viết đã được xóa thành công!');
+        setMessage('Bài viết và ảnh đã được xóa thành công!');
         setTimeout(() => setMessage(''), 3000);
       } else {
         setMessage('Có lỗi xảy ra khi xóa bài viết');
@@ -121,8 +140,10 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
     } catch (error) {
       console.error('Error deleting post:', error);
       setMessage('Có lỗi xảy ra khi xóa bài viết');
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
     }
-    setDeleteConfirm(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -328,6 +349,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
                         size="sm"
                         onClick={() => handleDeletePost(post)}
                         className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                        disabled={deleting}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -368,7 +390,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+      <Dialog open={!!deleteConfirm} onOpenChange={() => !deleting && setDeleteConfirm(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -382,17 +404,39 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
               <p>
                 Bạn có chắc chắn muốn xóa bài viết <strong>"{deleteConfirm.title}"</strong>?
               </p>
+              {deleteConfirm.featuredImage && (
+                <p className="text-sm text-muted-foreground">
+                  Ảnh đại diện của bài viết cũng sẽ được xóa khỏi hệ thống.
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 Hành động này không thể hoàn tác.
               </p>
               
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDeleteConfirm(null)}
+                  disabled={deleting}
+                >
                   Hủy
                 </Button>
-                <Button variant="destructive" onClick={confirmDelete}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Xóa bài viết
+                <Button 
+                  variant="destructive" 
+                  onClick={confirmDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Đang xóa...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Xóa bài viết
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

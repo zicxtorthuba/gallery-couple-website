@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Settings, Heart } from "lucide-react";
+import { User, LogOut } from "lucide-react";
 import { getCurrentUser, signOut, onAuthStateChange, type AuthUser } from "@/lib/auth";
 
 export function Navbar() {
@@ -105,25 +105,6 @@ export function Navbar() {
                     </p>
                   </div>
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/personal" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Trang cá nhân</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/favorites" className="cursor-pointer">
-                    <Heart className="mr-2 h-4 w-4" />
-                    <span>Yêu thích</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings" className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Cài đặt</span>
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -250,26 +231,17 @@ function MobileMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =>
               </Link>
               
               {user ? (
-                <>
-                  <Link
-                    href="/personal"
-                    onClick={() => setIsOpen(false)}
-                    className="font-cormorant transition-colors text-[#93E1D8] hover:text-[#FFA69E]"
-                  >
-                    Trang cá nhân
-                  </Link>
-                  <Button
-                    onClick={() => {
-                      onLogout();
-                      setIsOpen(false);
-                    }}
-                    variant="outline"
-                    className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 rounded-full px-6"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Đăng xuất
-                  </Button>
-                </>
+                <Button
+                  onClick={() => {
+                    onLogout();
+                    setIsOpen(false);
+                  }}
+                  variant="outline"
+                  className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 rounded-full px-6"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Đăng xuất
+                </Button>
               ) : (
                 <Link
                   href="/login"
