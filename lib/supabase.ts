@@ -20,11 +20,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     fetch: (url, options = {}) => {
       // Add timeout and retry logic to fetch requests
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15 seconds
       
       return fetch(url, {
         ...options,
         signal: controller.signal,
+        headers: {
+          ...options.headers,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       }).finally(() => {
         clearTimeout(timeoutId);
       }).catch((error) => {
@@ -158,6 +163,47 @@ export type Database = {
           type?: 'gallery' | 'blog';
           associated_id?: string | null;
           uploaded_at?: string;
+        };
+      };
+      gallery_images: {
+        Row: {
+          id: string;
+          url: string;
+          title: string;
+          description: string | null;
+          category: string;
+          tags: string[];
+          likes: number;
+          author_id: string;
+          author_name: string;
+          size: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          url: string;
+          title: string;
+          description?: string | null;
+          category?: string;
+          tags?: string[];
+          likes?: number;
+          author_id: string;
+          author_name: string;
+          size?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          url?: string;
+          title?: string;
+          description?: string | null;
+          category?: string;
+          tags?: string[];
+          likes?: number;
+          author_id?: string;
+          author_name?: string;
+          size?: number;
+          created_at?: string;
         };
       };
     };

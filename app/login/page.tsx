@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle, RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle, RefreshCw, Wifi, WifiOff, Globe } from "lucide-react";
 import Iridescence from "@/components/ui/Iridescence";
 import { signInWithGoogle, getCurrentUser, onAuthStateChange } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -17,28 +17,51 @@ export default function LoginPage() {
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [mounted, setMounted] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected' | 'slow'>('checking');
+  const [supabaseConnected, setSupabaseConnected] = useState<boolean | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
 
-    // Check internet connectivity
+    // Enhanced connection checking
     const checkConnection = async () => {
       try {
         setConnectionStatus('checking');
-        // Try to fetch a small resource to test connectivity
-        const response = await fetch('/favicon.ico', { 
-          method: 'HEAD',
-          cache: 'no-cache'
-        });
-        setIsOnline(response.ok);
-        setConnectionStatus('connected');
+        
+        // Test 1: Basic internet connectivity
+        const startTime = Date.now();
+        const response = await Promise.race([
+          fetch('https://www.google.com/favicon.ico', { 
+            method: 'HEAD',
+            cache: 'no-cache',
+            mode: 'no-cors'
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 5000)
+          )
+        ]);
+        
+        const responseTime = Date.now() - startTime;
+        
+        // Test 2: Supabase connectivity
+        try {
+          const { data, error } = await supabase.from('blog_posts').select('id').limit(1);
+          setSupabaseConnected(!error);
+        } catch (supabaseError) {
+          setSupabaseConnected(false);
+          console.warn('Supabase connection test failed:', supabaseError);
+        }
+        
+        setIsOnline(true);
+        setConnectionStatus(responseTime > 3000 ? 'slow' : 'connected');
+        
       } catch (error) {
+        console.warn('Connection check failed:', error);
         setIsOnline(false);
         setConnectionStatus('disconnected');
-        console.warn('Connection check failed:', error);
+        setSupabaseConnected(false);
       }
     };
 
@@ -47,13 +70,14 @@ export default function LoginPage() {
     // Listen for online/offline events
     const handleOnline = () => {
       setIsOnline(true);
-      setConnectionStatus('connected');
       setError(null);
+      checkConnection();
     };
     
     const handleOffline = () => {
       setIsOnline(false);
       setConnectionStatus('disconnected');
+      setSupabaseConnected(false);
       setError('Mất kết nối internet. Vui lòng kiểm tra kết nối và thử lại.');
     };
 
@@ -85,7 +109,11 @@ export default function LoginPage() {
             
             if (error) {
               console.error('Error setting session:', error);
-              setError('Lỗi xử lý phiên đăng nhập. Vui lòng thử lại.');
+              if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+                setError('Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.');
+              } else {
+                setError('Lỗi xử lý phiên đăng nhập. Vui lòng thử lại.');
+              }
               setDebugInfo(`Chi tiết: ${error.message}`);
             } else if (data.user) {
               console.log('Session set successfully, user:', data.user.email);
@@ -217,6 +245,11 @@ export default function LoginPage() {
       return;
     }
 
+    if (supabaseConnected === false) {
+      setError('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -249,7 +282,42 @@ export default function LoginPage() {
     if (window.location.hash) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+    
+    // Recheck connection
+    window.location.reload();
   };
+
+  const getConnectionStatusIcon = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return <Wifi className="h-4 w-4 text-green-500" />;
+      case 'slow':
+        return <Wifi className="h-4 w-4 text-yellow-500" />;
+      case 'disconnected':
+        return <WifiOff className="h-4 w-4 text-red-500" />;
+      case 'checking':
+        return <Globe className="h-4 w-4 text-blue-500 animate-spin" />;
+      default:
+        return <Wifi className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getConnectionStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return 'Kết nối tốt';
+      case 'slow':
+        return 'Kết nối chậm';
+      case 'disconnected':
+        return 'Không có kết nối';
+      case 'checking':
+        return 'Đang kiểm tra kết nối...';
+      default:
+        return 'Không xác định';
+    }
+  };
+
+  const canSignIn = isOnline && connectionStatus !== 'disconnected' && supabaseConnected !== false;
 
   if (showSuccess) {
     return (
@@ -314,21 +382,35 @@ export default function LoginPage() {
 
           <CardContent className="space-y-6">
             {/* Connection Status */}
-            {connectionStatus !== 'connected' && (
-              <Alert className={connectionStatus === 'disconnected' ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'}>
-                {connectionStatus === 'disconnected' ? (
-                  <WifiOff className="h-4 w-4 text-red-500" />
-                ) : (
-                  <Wifi className="h-4 w-4 text-yellow-500" />
-                )}
-                <AlertDescription className={connectionStatus === 'disconnected' ? 'text-red-700' : 'text-yellow-700'}>
-                  {connectionStatus === 'disconnected' 
-                    ? 'Không có kết nối internet. Vui lòng kiểm tra kết nối của bạn.'
-                    : 'Đang kiểm tra kết nối...'
-                  }
-                </AlertDescription>
-              </Alert>
-            )}
+            <Alert className={`${
+              connectionStatus === 'disconnected' 
+                ? 'border-red-200 bg-red-50' 
+                : connectionStatus === 'slow'
+                  ? 'border-yellow-200 bg-yellow-50'
+                  : connectionStatus === 'connected'
+                    ? 'border-green-200 bg-green-50'
+                    : 'border-blue-200 bg-blue-50'
+            }`}>
+              {getConnectionStatusIcon()}
+              <AlertDescription className={`${
+                connectionStatus === 'disconnected' 
+                  ? 'text-red-700' 
+                  : connectionStatus === 'slow'
+                    ? 'text-yellow-700'
+                    : connectionStatus === 'connected'
+                      ? 'text-green-700'
+                      : 'text-blue-700'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span>{getConnectionStatusText()}</span>
+                  {supabaseConnected !== null && (
+                    <span className="text-xs">
+                      Server: {supabaseConnected ? '✓' : '✗'}
+                    </span>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
 
             {/* Error Alert */}
             {error && (
@@ -367,7 +449,7 @@ export default function LoginPage() {
             {/* Google Login */}
             <Button
               onClick={handleGoogleSignIn}
-              disabled={isLoading || !isOnline || connectionStatus !== 'connected'}
+              disabled={isLoading || !canSignIn}
               className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md h-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
@@ -379,14 +461,14 @@ export default function LoginPage() {
               )}
               {isLoading 
                 ? 'Đang đăng nhập...' 
-                : !isOnline 
+                : !canSignIn 
                   ? 'Không có kết nối' 
                   : 'Đăng nhập với Google'
               }
             </Button>
 
             {/* Retry Button */}
-            {(error || !isOnline) && (
+            {(error || !canSignIn) && (
               <Button
                 onClick={handleRetry}
                 variant="outline"
@@ -406,6 +488,7 @@ export default function LoginPage() {
                 <p>Origin: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</p>
                 <p>Online: {isOnline ? 'Yes' : 'No'}</p>
                 <p>Connection: {connectionStatus}</p>
+                <p>Supabase: {supabaseConnected === null ? 'Unknown' : supabaseConnected ? 'Connected' : 'Disconnected'}</p>
                 <p>Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
                 {typeof window !== 'undefined' && window.location.hash && (
                   <p>Hash: {window.location.hash.substring(0, 100)}...</p>
