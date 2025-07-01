@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { StorageIndicator } from '@/components/ui/storage-indicator';
 import { 
   Save, 
   Eye, 
@@ -24,11 +25,21 @@ import {
   Palette,
   FileText,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  FileImage
 } from 'lucide-react';
 import { useEdgeStore } from '@/lib/edgestore';
 import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag } from '@/lib/blog-supabase';
 import { getCurrentUser } from '@/lib/auth';
+import { 
+  isFileSizeValid, 
+  hasStorageSpace, 
+  recordFileUpload, 
+  removeFileUpload,
+  formatBytes,
+  MAX_FILE_SIZE,
+  type StorageInfo
+} from '@/lib/storage';
 
 interface BlogEditorProps {
   post?: BlogPost;
@@ -65,6 +76,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   
   const { edgestore } = useEdgeStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -103,12 +115,51 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     return Object.keys(newErrors).length === 0;
   };
 
+  const validateFile = async (file: File): Promise<string | null> => {
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      return 'Vui lòng chọn file ảnh hợp lệ';
+    }
+
+    // Check file size
+    if (!isFileSizeValid(file)) {
+      return `Kích thước file không được vượt quá ${formatBytes(MAX_FILE_SIZE)}`;
+    }
+
+    // Check storage space
+    const hasSpace = await hasStorageSpace(file.size);
+    if (!hasSpace) {
+      return 'Không đủ dung lượng lưu trữ. Vui lòng xóa một số ảnh để giải phóng không gian.';
+    }
+
+    return null;
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file
+    const validationError = await validateFile(file);
+    if (validationError) {
+      setSaveMessage(validationError);
+      setTimeout(() => setSaveMessage(''), 5000);
+      return;
+    }
+
     try {
       setIsUploading(true);
+      
+      // If there's an existing featured image, remove it from storage tracking
+      if (formData.featuredImage && (formData.featuredImage.includes('edgestore') || formData.featuredImage.includes('files.edgestore.dev'))) {
+        try {
+          await edgestore.images.delete({ url: formData.featuredImage });
+          await removeFileUpload(formData.featuredImage);
+        } catch (error) {
+          console.warn('Failed to delete old featured image:', error);
+        }
+      }
+
       const res = await edgestore.images.upload({
         file,
         onProgressChange: (progress) => {
@@ -116,12 +167,26 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
         },
       });
       
+      // Record the upload in our storage tracking
+      const recorded = await recordFileUpload(
+        res.url,
+        file.name,
+        file.size,
+        'blog',
+        post?.id
+      );
+
+      if (!recorded) {
+        console.warn('Failed to record file upload, but continuing...');
+      }
+      
       setFormData(prev => ({ ...prev, featuredImage: res.url }));
       setSaveMessage('Ảnh đã được tải lên thành công!');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
       console.error('Upload failed:', error);
       setSaveMessage('Lỗi khi tải ảnh lên');
+      setTimeout(() => setSaveMessage(''), 3000);
     } finally {
       setIsUploading(false);
     }
@@ -228,15 +293,21 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Storage Indicator */}
+      <StorageIndicator 
+        showDetails={false}
+        onStorageUpdate={setStorageInfo}
+      />
+
       {/* Success/Error Messages */}
       {saveMessage && (
-        <Alert className={saveMessage.includes('Lỗi') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
-          {saveMessage.includes('Lỗi') ? (
+        <Alert className={saveMessage.includes('Lỗi') || saveMessage.includes('không được') || saveMessage.includes('Không đủ') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
+          {saveMessage.includes('Lỗi') || saveMessage.includes('không được') || saveMessage.includes('Không đủ') ? (
             <AlertCircle className="h-4 w-4 text-red-500" />
           ) : (
             <CheckCircle className="h-4 w-4 text-green-500" />
           )}
-          <AlertDescription className={saveMessage.includes('Lỗi') ? 'text-red-700' : 'text-green-700'}>
+          <AlertDescription className={saveMessage.includes('Lỗi') || saveMessage.includes('không được') || saveMessage.includes('Không đủ') ? 'text-red-700' : 'text-green-700'}>
             {saveMessage}
           </AlertDescription>
         </Alert>
@@ -360,6 +431,14 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
               <CardTitle className="text-lg">Ảnh đại diện</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* File Size Limit Info */}
+              <Alert className="border-blue-200 bg-blue-50">
+                <FileImage className="h-4 w-4 text-blue-500" />
+                <AlertDescription className="text-blue-700">
+                  <strong>Giới hạn:</strong> Tối đa {formatBytes(MAX_FILE_SIZE)} mỗi ảnh
+                </AlertDescription>
+              </Alert>
+
               {formData.featuredImage && (
                 <div className="relative">
                   <img
@@ -389,11 +468,11 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
+                disabled={isUploading || storageInfo?.remaining === 0}
                 className="w-full"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {isUploading ? 'Đang tải...' : 'Tải ảnh lên'}
+                {isUploading ? 'Đang tải...' : (storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh lên')}
               </Button>
             </CardContent>
           </Card>

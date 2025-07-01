@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { StorageIndicator } from '@/components/ui/storage-indicator';
 import { 
   Heart, 
   Search, 
@@ -28,13 +29,23 @@ import {
   Camera,
   ImageIcon,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  FileImage
 } from 'lucide-react';
 import { galleryImages } from '@/lib/data';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useEdgeStore } from '@/lib/edgestore';
+import { 
+  isFileSizeValid, 
+  hasStorageSpace, 
+  recordFileUpload, 
+  removeFileUpload,
+  formatBytes,
+  MAX_FILE_SIZE,
+  type StorageInfo
+} from '@/lib/storage';
 
 interface GalleryImage {
   id: string;
@@ -46,6 +57,7 @@ interface GalleryImage {
   author: string;
   createdAt: string;
   description?: string;
+  size?: number; // Add size tracking
 }
 
 function GalleryContent() {
@@ -61,6 +73,7 @@ function GalleryContent() {
   const [loading, setLoading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [message, setMessage] = useState('');
+  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const { edgestore } = useEdgeStore();
   const [uploadData, setUploadData] = useState({
     title: '',
@@ -174,8 +187,36 @@ function GalleryContent() {
     }
   };
 
+  const validateFile = async (file: File): Promise<string | null> => {
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      return 'Vui lòng chọn file ảnh hợp lệ';
+    }
+
+    // Check file size
+    if (!isFileSizeValid(file)) {
+      return `Kích thước file không được vượt quá ${formatBytes(MAX_FILE_SIZE)}`;
+    }
+
+    // Check storage space
+    const hasSpace = await hasStorageSpace(file.size);
+    if (!hasSpace) {
+      return 'Không đủ dung lượng lưu trữ. Vui lòng xóa một số ảnh để giải phóng không gian.';
+    }
+
+    return null;
+  };
+
   const handleUpload = async () => {
     if (!uploadData.file || !uploadData.title) return;
+
+    // Validate file
+    const validationError = await validateFile(uploadData.file);
+    if (validationError) {
+      setMessage(validationError);
+      setTimeout(() => setMessage(''), 5000);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -191,6 +232,18 @@ function GalleryContent() {
         },
       });
 
+      // Record the upload in our storage tracking
+      const recorded = await recordFileUpload(
+        res.url,
+        uploadData.file.name,
+        uploadData.file.size,
+        'gallery'
+      );
+
+      if (!recorded) {
+        console.warn('Failed to record file upload, but continuing...');
+      }
+
       const newImage: GalleryImage = {
         id: `upload-${Date.now()}`,
         url: res.url, // Use the CDN URL from EdgeStore
@@ -201,6 +254,7 @@ function GalleryContent() {
         likes: 0,
         author: 'current-user',
         createdAt: new Date().toISOString().split('T')[0],
+        size: uploadData.file.size
       };
 
       // Prepend new image to gallery
@@ -270,6 +324,9 @@ function GalleryContent() {
             url: imageToDelete.url,
           });
           console.log('Successfully deleted from EdgeStore');
+          
+          // Remove from storage tracking
+          await removeFileUpload(imageToDelete.url);
         } catch (edgeStoreError: any) {
           console.warn('EdgeStore deletion failed (this is OK for external URLs):', edgeStoreError.message);
           // Don't throw error here - we still want to remove from UI even if EdgeStore deletion fails
@@ -302,6 +359,26 @@ function GalleryContent() {
     setSelectedTags(prev => prev.filter(t => t !== tag));
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Immediate file validation
+    if (!file.type.startsWith('image/')) {
+      setMessage('Vui lòng chọn file ảnh hợp lệ');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+
+    if (!isFileSizeValid(file)) {
+      setMessage(`Kích thước file không được vượt quá ${formatBytes(MAX_FILE_SIZE)}`);
+      setTimeout(() => setMessage(''), 5000);
+      return;
+    }
+
+    setUploadData(prev => ({ ...prev, file }));
+  };
+
   const categories = ['all', ...Array.from(new Set(images.map(img => img.category)))];
   const allTags = Array.from(new Set(images.flatMap(img => img.tags)));
 
@@ -309,15 +386,21 @@ function GalleryContent() {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4">
+          {/* Storage Indicator */}
+          <StorageIndicator 
+            className="mb-6"
+            onStorageUpdate={setStorageInfo}
+          />
+
           {/* Success/Error Messages */}
           {message && (
-            <Alert className={`mb-6 ${message.includes('Lỗi') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
-              {message.includes('Lỗi') ? (
+            <Alert className={`mb-6 ${message.includes('Lỗi') || message.includes('không được') || message.includes('Không đủ') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
+              {message.includes('Lỗi') || message.includes('không được') || message.includes('Không đủ') ? (
                 <AlertTriangle className="h-4 w-4 text-red-500" />
               ) : (
                 <CheckCircle className="h-4 w-4 text-green-500" />
               )}
-              <AlertDescription className={message.includes('Lỗi') ? 'text-red-700' : 'text-green-700'}>
+              <AlertDescription className={message.includes('Lỗi') || message.includes('không được') || message.includes('Không đủ') ? 'text-red-700' : 'text-green-700'}>
                 {message}
               </AlertDescription>
             </Alert>
@@ -337,9 +420,12 @@ function GalleryContent() {
           <div className="flex justify-center mb-8">
             <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
               <DialogTrigger asChild>
-                <Button className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full">
+                <Button 
+                  className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full"
+                  disabled={storageInfo?.remaining === 0}
+                >
                   <Upload className="h-4 w-4 mr-2" />
-                  Tải ảnh lên
+                  {storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh lên'}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
@@ -349,18 +435,28 @@ function GalleryContent() {
                   </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
+                  {/* File Size Limit Info */}
+                  <Alert className="border-blue-200 bg-blue-50">
+                    <FileImage className="h-4 w-4 text-blue-500" />
+                    <AlertDescription className="text-blue-700">
+                      <strong>Giới hạn:</strong> Tối đa {formatBytes(MAX_FILE_SIZE)} mỗi ảnh
+                    </AlertDescription>
+                  </Alert>
+
                   <div>
                     <Label htmlFor="upload-file">Chọn ảnh</Label>
                     <Input
                       id="upload-file"
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setUploadData(prev => ({ 
-                        ...prev, 
-                        file: e.target.files?.[0] || null 
-                      }))}
+                      onChange={handleFileSelect}
                       className="mt-1"
                     />
+                    {uploadData.file && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Kích thước: {formatBytes(uploadData.file.size)}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="upload-title">Tiêu đề *</Label>
@@ -620,6 +716,11 @@ function GalleryContent() {
                         {favoriteImages.has(image.id) && (
                           <Star className="h-3 w-3 text-yellow-500 fill-current" />
                         )}
+                        {image.size && (
+                          <span className="text-xs opacity-75">
+                            {formatBytes(image.size)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -642,9 +743,10 @@ function GalleryContent() {
                 <Button 
                   onClick={() => setShowUploadDialog(true)}
                   className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full"
+                  disabled={storageInfo?.remaining === 0}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Tải ảnh đầu tiên
+                  {storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh đầu tiên'}
                 </Button>
               </div>
             </div>
@@ -741,8 +843,11 @@ function GalleryContent() {
                 ))}
               </div>
               
-              <div className="text-sm text-muted-foreground mt-2">
-                Tác giả: @{selectedImage.author} • {selectedImage.createdAt}
+              <div className="text-sm text-muted-foreground mt-2 flex items-center justify-between">
+                <span>Tác giả: @{selectedImage.author} • {selectedImage.createdAt}</span>
+                {selectedImage.size && (
+                  <span>Kích thước: {formatBytes(selectedImage.size)}</span>
+                )}
               </div>
             </>
           )}
