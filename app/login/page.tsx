@@ -15,10 +15,14 @@ export default function LoginPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    // indicate that we are now on the client so we can safely reference window
+    setMounted(true);
+
     // Handle OAuth callback with tokens in URL fragment
     const handleOAuthCallback = async () => {
       const hash = window.location.hash;
@@ -321,7 +325,7 @@ export default function LoginPage() {
             )}
 
             {/* Debug Info */}
-            {process.env.NODE_ENV === 'development' && (
+            {process.env.NODE_ENV === 'development' && mounted && (
               <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
                 <p><strong>Debug Info:</strong></p>
                 <p>URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
