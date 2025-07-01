@@ -55,6 +55,7 @@ export const getBlogPosts = async (includeUnpublished = false): Promise<BlogPost
 
     if (error) {
       console.error('Error fetching blog posts:', error);
+      // Return empty array instead of throwing error for better UX
       return [];
     }
 
@@ -80,6 +81,7 @@ export const getBlogPosts = async (includeUnpublished = false): Promise<BlogPost
     })) || [];
   } catch (error) {
     console.error('Error in getBlogPosts:', error);
+    // Return empty array instead of throwing error for better UX
     return [];
   }
 };
@@ -126,7 +128,10 @@ export const getBlogPost = async (id: string): Promise<BlogPost | null> => {
 export const createBlogPost = async (postData: Partial<BlogPost>): Promise<BlogPost | null> => {
   try {
     const user = await getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) {
+      console.error('User not authenticated');
+      return null;
+    }
 
     const now = new Date().toISOString();
     const readTime = calculateReadTime(postData.content || '');
@@ -191,7 +196,10 @@ export const createBlogPost = async (postData: Partial<BlogPost>): Promise<BlogP
 export const updateBlogPost = async (postId: string, updates: Partial<BlogPost>): Promise<BlogPost | null> => {
   try {
     const user = await getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) {
+      console.error('User not authenticated');
+      return null;
+    }
 
     // Get current post for revision history
     const currentPost = await getBlogPost(postId);
@@ -278,7 +286,10 @@ export const updateBlogPost = async (postId: string, updates: Partial<BlogPost>)
 export const deleteBlogPost = async (postId: string): Promise<boolean> => {
   try {
     const user = await getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) {
+      console.error('User not authenticated');
+      return false;
+    }
 
     // Get the post first to check for featured image
     const post = await getBlogPost(postId);
@@ -433,6 +444,7 @@ export const updateTagCounts = async (): Promise<void> => {
     await supabase.rpc('update_tag_post_counts');
   } catch (error) {
     console.error('Error updating tag counts:', error);
+    // Don't throw error, just log it
   }
 };
 
