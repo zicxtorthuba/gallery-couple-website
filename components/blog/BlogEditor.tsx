@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,6 @@ import {
 } from 'lucide-react';
 import { useEdgeStore } from '@/lib/edgestore';
 import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag } from '@/lib/blog-supabase';
-import { getStoredUser } from '@/lib/auth';
 
 interface BlogEditorProps {
   post?: BlogPost;
@@ -47,6 +47,7 @@ const iconOptions = [
 ];
 
 export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
+  const { data: session } = useSession();
   const [formData, setFormData] = useState({
     title: post?.title || '',
     content: post?.content || '',
@@ -67,7 +68,6 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   
   const { edgestore } = useEdgeStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const user = getStoredUser();
 
   useEffect(() => {
     loadTags();
@@ -158,7 +158,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   };
 
   const handleSave = async () => {
-    if (!validateForm() || !user || isSaving) return;
+    if (!validateForm() || !session?.user || isSaving) return;
 
     try {
       setIsSaving(true);
@@ -181,9 +181,9 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           customIcon: formData.customIcon || undefined,
           tags: formData.tags,
           status: formData.status,
-          author: user.name,
-          authorId: user.id,
-          authorAvatar: user.image || ''
+          author: session.user.name || 'Unknown',
+          authorId: session.user.id || '',
+          authorAvatar: session.user.image || ''
         });
       }
       
@@ -209,6 +209,16 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   };
 
   const SelectedIcon = getSelectedIcon();
+
+  if (!session) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Bạn cần đăng nhập để tạo bài viết</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -521,7 +531,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
               <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                 <div className="flex items-center gap-1">
                   <User className="h-4 w-4" />
-                  <span>{user?.name}</span>
+                  <span>{session.user?.name}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated } from '@/lib/auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock, ArrowRight } from 'lucide-react';
@@ -14,14 +13,9 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, fallback }: AuthGuardProps) {
-  const [isAuth, setIsAuth] = useState<boolean | null>(null);
-  const router = useRouter();
+  const { data: session, status } = useSession();
 
-  useEffect(() => {
-    setIsAuth(isAuthenticated());
-  }, []);
-
-  if (isAuth === null) {
+  if (status === 'loading') {
     // Loading state
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -30,7 +24,7 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
     );
   }
 
-  if (!isAuth) {
+  if (!session) {
     return fallback || (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
