@@ -11,22 +11,6 @@ export const galleryImages: Array<{
   description?: string;
 }> = [];
 
-// Mock data for blog posts - empty to allow user creation
-export const blogPosts: Array<{
-  id: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  featuredImage: string;
-  author: string;
-  authorAvatar: string;
-  publishedAt: string;
-  readTime: number;
-  likes: number;
-  comments: number;
-  tags: string[];
-}> = [];
-
 // Mock user data - completely empty profiles
 export const userData = {
   "1": { // John Doe

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -15,20 +15,52 @@ import {
   MessageCircleIcon, 
   ShareIcon,
   BookmarkIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  FileText,
+  Calendar,
+  Clock,
+  User,
+  Tag,
+  Eye,
+  Palette
 } from 'lucide-react';
-import { blogPosts } from '@/lib/data';
+import { BlogPost, getBlogPosts } from '@/lib/blog';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+
+const iconMap: Record<string, any> = {
+  FileText, Calendar, Clock, User, Tag, Eye, Palette
+};
 
 export default function BlogPostPage() {
   const params = useParams();
   const postId = params.id as string;
   
-  const post = blogPosts.find(p => p.id === postId);
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [likes, setLikes] = useState(post?.likes || 0);
+  const [likes, setLikes] = useState(0);
+
+  useEffect(() => {
+    const posts = getBlogPosts();
+    const foundPost = posts.find(p => p.id === postId && p.status === 'published');
+    
+    if (foundPost) {
+      setPost(foundPost);
+      setLikes(foundPost.likes);
+      
+      // Get related posts (same tags, excluding current post)
+      const related = posts
+        .filter(p => 
+          p.id !== postId && 
+          p.status === 'published' &&
+          p.tags.some(tag => foundPost.tags.includes(tag))
+        )
+        .slice(0, 2);
+      setRelatedPosts(related);
+    }
+  }, [postId]);
 
   if (!post) {
     return (
@@ -68,6 +100,15 @@ export default function BlogPostPage() {
     }
   };
 
+  const getPostIcon = () => {
+    if (post.customIcon && iconMap[post.customIcon]) {
+      return iconMap[post.customIcon];
+    }
+    return FileText;
+  };
+
+  const PostIcon = getPostIcon();
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -82,9 +123,14 @@ export default function BlogPostPage() {
 
           {/* Header */}
           <header className="mb-8">
-            <h1 className="font-cormorant text-4xl md:text-5xl font-light leading-tight mb-6">
-              {post.title}
-            </h1>
+            <div className="flex items-center gap-3 mb-6">
+              {post.customIcon && (
+                <PostIcon className="h-8 w-8 text-[#93E1D8]" />
+              )}
+              <h1 className="font-cormorant text-4xl md:text-5xl font-light leading-tight">
+                {post.title}
+              </h1>
+            </div>
             
             {/* Meta */}
             <div className="flex flex-wrap items-center gap-6 mb-6">
@@ -98,7 +144,7 @@ export default function BlogPostPage() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <CalendarIcon className="h-4 w-4" />
-                      <span>{post.publishedAt}</span>
+                      <span>{new Date(post.publishedAt).toLocaleDateString('vi-VN')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ClockIcon className="h-4 w-4" />
@@ -150,15 +196,17 @@ export default function BlogPostPage() {
           </header>
 
           {/* Featured Image */}
-          <div className="relative h-64 md:h-96 overflow-hidden rounded-xl mb-12">
-            <Image
-              src={post.featuredImage}
-              alt={post.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 80vw"
-              className="object-cover"
-            />
-          </div>
+          {post.featuredImage && (
+            <div className="relative h-64 md:h-96 overflow-hidden rounded-xl mb-12">
+              <Image
+                src={post.featuredImage}
+                alt={post.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 80vw"
+                className="object-cover"
+              />
+            </div>
+          )}
 
           {/* Content */}
           <article className="prose prose-lg max-w-none">
@@ -170,7 +218,13 @@ export default function BlogPostPage() {
                 lineHeight: '1.8'
               }}
               dangerouslySetInnerHTML={{ 
-                __html: post.content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>').replace(/^/, '<p>').replace(/$/, '</p>').replace(/## (.*?)<br>/g, '<h2 style="font-size: 1.5rem; font-weight: 600; margin: 2rem 0 1rem 0; color: #1f2937;">$1</h2>').replace(/### (.*?)<br>/g, '<h3 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 0.75rem 0; color: #1f2937;">$3</h3>')
+                __html: post.content
+                  .replace(/\n\n/g, '</p><p>')
+                  .replace(/\n/g, '<br>')
+                  .replace(/^/, '<p>')
+                  .replace(/$/, '</p>')
+                  .replace(/## (.*?)<br>/g, '<h2 style="font-size: 1.5rem; font-weight: 600; margin: 2rem 0 1rem 0; color: #1f2937;">$1</h2>')
+                  .replace(/### (.*?)<br>/g, '<h3 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 0.75rem 0; color: #1f2937;">$1</h3>')
               }}
             />
           </article>
@@ -201,47 +255,68 @@ export default function BlogPostPage() {
               </Avatar>
               <div className="text-sm">
                 <p className="font-medium">Viết bởi {post.author}</p>
-                <p className="text-muted-foreground">{post.publishedAt}</p>
+                <p className="text-muted-foreground">{new Date(post.publishedAt).toLocaleDateString('vi-VN')}</p>
               </div>
             </div>
           </div>
 
           {/* Related Posts */}
-          <Separator className="my-12" />
-          
-          <div>
-            <h3 className="font-cormorant text-2xl font-light mb-6">Bài viết liên quan</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {blogPosts.filter(p => p.id !== post.id).slice(0, 2).map(relatedPost => (
-                <Link key={relatedPost.id} href={`/blog/${relatedPost.id}`} className="group">
-                  <div className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-                    <div className="relative h-48">
-                      <Image
-                        src={relatedPost.featuredImage}
-                        alt={relatedPost.title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h4 className="font-cormorant text-xl font-medium mb-2 group-hover:text-[#93E1D8] transition-colors">
-                        {relatedPost.title}
-                      </h4>
-                      <p className="text-muted-foreground text-sm line-clamp-2">
-                        {relatedPost.excerpt}
-                      </p>
-                      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-                        <span>{relatedPost.publishedAt}</span>
-                        <span>•</span>
-                        <span>{relatedPost.readTime} phút đọc</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+          {relatedPosts.length > 0 && (
+            <>
+              <Separator className="my-12" />
+              
+              <div>
+                <h3 className="font-cormorant text-2xl font-light mb-6">Bài viết liên quan</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {relatedPosts.map(relatedPost => {
+                    const RelatedIcon = relatedPost.customIcon && iconMap[relatedPost.customIcon] 
+                      ? iconMap[relatedPost.customIcon] 
+                      : FileText;
+                    
+                    return (
+                      <Link key={relatedPost.id} href={`/blog/${relatedPost.id}`} className="group">
+                        <div className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                          {relatedPost.featuredImage ? (
+                            <div className="relative h-48">
+                              <Image
+                                src={relatedPost.featuredImage}
+                                alt={relatedPost.title}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 50vw"
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-48 bg-gradient-to-br from-[#93E1D8]/20 to-[#FFA69E]/20 flex items-center justify-center">
+                              <RelatedIcon className="h-12 w-12 text-[#93E1D8]" />
+                            </div>
+                          )}
+                          <div className="p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              {relatedPost.customIcon && (
+                                <RelatedIcon className="h-4 w-4 text-[#93E1D8]" />
+                              )}
+                              <h4 className="font-cormorant text-xl font-medium group-hover:text-[#93E1D8] transition-colors">
+                                {relatedPost.title}
+                              </h4>
+                            </div>
+                            <p className="text-muted-foreground text-sm line-clamp-2">
+                              {relatedPost.excerpt}
+                            </p>
+                            <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                              <span>{new Date(relatedPost.publishedAt).toLocaleDateString('vi-VN')}</span>
+                              <span>•</span>
+                              <span>{relatedPost.readTime} phút đọc</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
