@@ -18,7 +18,7 @@ export const userData = {
     uploadedImages: [],
     collections: [],
     storageUsed: 0, // MB
-    storageLimit: 500, // MB (500MB limit)
+    storageLimit: 1024, // MB (1GB limit)
     activityHistory: [],
     profilePicture: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1"
   },
@@ -27,7 +27,7 @@ export const userData = {
     uploadedImages: [],
     collections: [],
     storageUsed: 0,
-    storageLimit: 500,
+    storageLimit: 1024,
     activityHistory: [],
     profilePicture: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1"
   },
@@ -36,7 +36,7 @@ export const userData = {
     uploadedImages: [],
     collections: [],
     storageUsed: 0,
-    storageLimit: 500,
+    storageLimit: 1024,
     activityHistory: [],
     profilePicture: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1"
   }
