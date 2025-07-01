@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import Iridescence from "@/components/ui/Iridescence";
-import { signInWithGoogle, getCurrentUser } from '@/lib/auth';
+import { signInWithGoogle, getCurrentUser, onAuthStateChange } from '@/lib/auth';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +69,10 @@ export default function LoginPage() {
         const user = await getCurrentUser();
         if (user) {
           console.log('User already authenticated:', user.email);
-          router.push('/');
+          setShowSuccess(true);
+          setTimeout(() => {
+            router.push('/');
+          }, 2000);
         }
       } catch (error) {
         console.error('Error checking auth:', error);
@@ -77,6 +80,21 @@ export default function LoginPage() {
     };
     
     checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = onAuthStateChange((user) => {
+      if (user) {
+        console.log('User authenticated via state change:', user.email);
+        setShowSuccess(true);
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, [router, searchParams]);
 
   const handleGoogleSignIn = async () => {
@@ -89,7 +107,6 @@ export default function LoginPage() {
       await signInWithGoogle();
       
       // The redirect will happen automatically via OAuth flow
-      // If we reach here, something might be wrong
       console.log('Sign in initiated, waiting for redirect...');
       
     } catch (error: any) {
@@ -103,6 +120,12 @@ export default function LoginPage() {
   const clearError = () => {
     setError(null);
     setDebugInfo('');
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    setDebugInfo('');
+    setIsLoading(false);
   };
 
   if (showSuccess) {
@@ -178,6 +201,14 @@ export default function LoginPage() {
                       {debugInfo && (
                         <p className="text-xs mt-1 opacity-75">{debugInfo}</p>
                       )}
+                      <div className="mt-2 space-y-1 text-xs">
+                        <p><strong>Khắc phục:</strong></p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>Đảm bảo kết nối internet ổn định</li>
+                          <li>Thử xóa cache và cookies của trình duyệt</li>
+                          <li>Kiểm tra cấu hình Google OAuth</li>
+                        </ul>
+                      </div>
                     </div>
                     <Button
                       variant="ghost"
@@ -209,7 +240,7 @@ export default function LoginPage() {
             {/* Retry Button */}
             {error && (
               <Button
-                onClick={() => window.location.reload()}
+                onClick={handleRetry}
                 variant="outline"
                 className="w-full"
               >
@@ -222,9 +253,10 @@ export default function LoginPage() {
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
                 <p><strong>Debug Info:</strong></p>
-                <p>URL: {window.location.href}</p>
-                <p>Origin: {window.location.origin}</p>
-                <p>Callback URL: {window.location.origin}/auth/callback</p>
+                <p>URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
+                <p>Origin: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</p>
+                <p>Callback URL: {typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : 'N/A'}</p>
+                <p>Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
               </div>
             )}
 

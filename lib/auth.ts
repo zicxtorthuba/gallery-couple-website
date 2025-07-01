@@ -43,7 +43,7 @@ export const signInWithGoogle = async () => {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           access_type: 'offline',
-          prompt: 'consent',
+          prompt: 'select_account', // Changed from 'consent' to 'select_account'
         },
       }
     });
@@ -69,10 +69,13 @@ export const signOut = async () => {
       throw error;
     }
     
-    // Clear any additional cookies
+    // Clear cookies
     if (typeof window !== 'undefined') {
       document.cookie = 'sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       document.cookie = 'sb-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      
+      // Force reload to clear any cached state
+      window.location.href = '/';
     }
   } catch (error) {
     console.error('Error signing out:', error);

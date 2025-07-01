@@ -11,7 +11,12 @@ export async function GET(request: NextRequest) {
   const errorDescription = searchParams.get('error_description');
   const next = searchParams.get('next') ?? '/';
 
-  console.log('Auth callback received:', { code: !!code, error, errorDescription });
+  console.log('Auth callback received:', { 
+    code: !!code, 
+    error, 
+    errorDescription,
+    allParams: Object.fromEntries(searchParams.entries())
+  });
 
   // Handle OAuth errors from Google
   if (error) {
@@ -22,15 +27,17 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     try {
-      // Create a new Supabase client for server-side auth
+      // Create a new Supabase client for server-side auth with implicit flow
       const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
           autoRefreshToken: false,
           persistSession: false,
-          detectSessionInUrl: false
+          detectSessionInUrl: false,
+          flowType: 'implicit'
         }
       });
 
+      console.log('Attempting to exchange code for session...');
       const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code);
       
       if (authError) {
@@ -45,24 +52,31 @@ export async function GET(request: NextRequest) {
 
       console.log('Auth successful, user:', data.user?.email);
       
-      // Create response with session cookies
-      const response = NextResponse.redirect(`${origin}${next.startsWith('/') ? next : '/'}`);
+      // Create response and redirect to home
+      const redirectUrl = `${origin}${next.startsWith('/') ? next : '/'}`;
+      const response = NextResponse.redirect(redirectUrl);
       
-      // Set session cookies manually for better reliability
+      // Set session cookies for better session persistence
       if (data.session) {
+        const maxAge = 60 * 60 * 24 * 7; // 7 days
+        
         response.cookies.set('sb-access-token', data.session.access_token, {
-          httpOnly: true,
+          httpOnly: false, // Allow client-side access for Supabase
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
-          maxAge: data.session.expires_in
+          maxAge: data.session.expires_in || maxAge,
+          path: '/'
         });
         
-        response.cookies.set('sb-refresh-token', data.session.refresh_token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 30 // 30 days
-        });
+        if (data.session.refresh_token) {
+          response.cookies.set('sb-refresh-token', data.session.refresh_token, {
+            httpOnly: false, // Allow client-side access for Supabase
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 30, // 30 days
+            path: '/'
+          });
+        }
       }
       
       return response;
