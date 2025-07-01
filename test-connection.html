@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase Connection</title>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <div id="result"></div>
+
+    <script>
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('https://pbpwdudejwopjndhbntd.supabase.co/rest/v1/', {
+                    method: 'GET',
+                    headers: {
+                        'apikey': 'your-anon-key-here'
+                    }
+                });
+                
+                resultDiv.innerHTML = `
+                    <p style="color: green;">✅ Connection successful!</p>
+                    <p>Status: ${response.status}</p>
+                    <p>Response: ${response.statusText}</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p style="color: red;">❌ Connection failed!</p>
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
