@@ -32,7 +32,6 @@ import {
   CheckCircle,
   FileImage
 } from 'lucide-react';
-import { galleryImages } from '@/lib/data';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { AuthGuard } from '@/components/AuthGuard';
@@ -46,19 +45,17 @@ import {
   MAX_FILE_SIZE,
   type StorageInfo
 } from '@/lib/storage';
-
-interface GalleryImage {
-  id: string;
-  url: string;
-  title: string;
-  category: string;
-  tags: string[];
-  likes: number;
-  author: string;
-  createdAt: string;
-  description?: string;
-  size?: number; // Add size tracking
-}
+import {
+  getGalleryImages,
+  createGalleryImage,
+  updateGalleryImage,
+  deleteGalleryImage,
+  updateImageLikes,
+  getGalleryCategories,
+  getGalleryTags,
+  type GalleryImage
+} from '@/lib/gallery-supabase';
+import { getCurrentUser } from '@/lib/auth';
 
 function GalleryContent() {
   const [images, setImages] = useState<GalleryImage[]>([]);
@@ -74,7 +71,11 @@ function GalleryContent() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [message, setMessage] = useState('');
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const { edgestore } = useEdgeStore();
+  
   const [uploadData, setUploadData] = useState({
     title: '',
     description: '',
@@ -82,39 +83,62 @@ function GalleryContent() {
     tags: '',
     file: null as File | null
   });
+  
   const [editData, setEditData] = useState({
     title: '',
     description: '',
     tags: ''
   });
 
-  // Load images from localStorage on mount, fallback to hard-coded data
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('galleryImages') : null;
-    if (stored) {
-      try {
-        const parsed: GalleryImage[] = JSON.parse(stored);
-        setImages(parsed);
-        setFilteredImages(parsed);
-        return;
-      } catch (err) {
-        console.error('Failed to parse stored images', err);
-      }
-    }
-    // Fallback
-    setImages(galleryImages);
-    setFilteredImages(galleryImages);
+    loadImages();
+    loadCategories();
+    loadTags();
+    loadCurrentUser();
   }, []);
 
-  // Persist images whenever they change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('galleryImages', JSON.stringify(images));
-    }
-  }, [images]);
+    filterImages();
+  }, [images, searchTerm, selectedCategory, selectedTags]);
 
-  // Filter images based on search, category, and tags
-  useEffect(() => {
+  const loadCurrentUser = async () => {
+    const user = await getCurrentUser();
+    setCurrentUser(user);
+  };
+
+  const loadImages = async () => {
+    try {
+      setLoading(true);
+      const galleryImages = await getGalleryImages();
+      setImages(galleryImages);
+    } catch (error) {
+      console.error('Error loading images:', error);
+      setMessage('Có lỗi xảy ra khi tải ảnh');
+      setTimeout(() => setMessage(''), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const cats = await getGalleryCategories();
+      setCategories(cats);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
+
+  const loadTags = async () => {
+    try {
+      const tags = await getGalleryTags();
+      setAllTags(tags);
+    } catch (error) {
+      console.error('Error loading tags:', error);
+    }
+  };
+
+  const filterImages = () => {
     let filtered = images;
 
     if (searchTerm) {
@@ -136,24 +160,34 @@ function GalleryContent() {
     }
 
     setFilteredImages(filtered);
-  }, [images, searchTerm, selectedCategory, selectedTags]);
+  };
 
-  const handleLike = (imageId: string) => {
-    setLikedImages(prev => {
-      const newLiked = new Set(prev);
-      if (newLiked.has(imageId)) {
-        newLiked.delete(imageId);
-      } else {
-        newLiked.add(imageId);
+  const handleLike = async (imageId: string) => {
+    const isLiked = likedImages.has(imageId);
+    
+    try {
+      const success = await updateImageLikes(imageId, !isLiked);
+      if (success) {
+        setLikedImages(prev => {
+          const newLiked = new Set(prev);
+          if (isLiked) {
+            newLiked.delete(imageId);
+          } else {
+            newLiked.add(imageId);
+          }
+          return newLiked;
+        });
+
+        // Update local state
+        setImages(prev => prev.map(img =>
+          img.id === imageId
+            ? { ...img, likes: isLiked ? img.likes - 1 : img.likes + 1 }
+            : img
+        ));
       }
-      return newLiked;
-    });
-
-    setImages(prev => prev.map(img =>
-      img.id === imageId
-        ? { ...img, likes: likedImages.has(imageId) ? img.likes - 1 : img.likes + 1 }
-        : img
-    ));
+    } catch (error) {
+      console.error('Error updating likes:', error);
+    }
   };
 
   const handleFavorite = (imageId: string) => {
@@ -188,17 +222,14 @@ function GalleryContent() {
   };
 
   const validateFile = async (file: File): Promise<string | null> => {
-    // Check file type
     if (!file.type.startsWith('image/')) {
       return 'Vui lòng chọn file ảnh hợp lệ';
     }
 
-    // Check file size
     if (!isFileSizeValid(file)) {
       return `Kích thước file không được vượt quá ${formatBytes(MAX_FILE_SIZE)}`;
     }
 
-    // Check storage space
     const hasSpace = await hasStorageSpace(file.size);
     if (!hasSpace) {
       return 'Không đủ dung lượng lưu trữ. Vui lòng xóa một số ảnh để giải phóng không gian.';
@@ -210,7 +241,6 @@ function GalleryContent() {
   const handleUpload = async () => {
     if (!uploadData.file || !uploadData.title) return;
 
-    // Validate file
     const validationError = await validateFile(uploadData.file);
     if (validationError) {
       setMessage(validationError);
@@ -221,18 +251,17 @@ function GalleryContent() {
     try {
       setLoading(true);
 
-      // Upload the file to EdgeStore and retrieve the public URL
+      // Upload to EdgeStore
       const res = await edgestore.images.upload({
         file: uploadData.file,
         onProgressChange: (progress: number) => {
-          // Hide loader once done (optional you can hook this to UI)
           if (progress === 100) {
             setLoading(false);
           }
         },
       });
 
-      // Record the upload in our storage tracking
+      // Record in storage tracking
       const recorded = await recordFileUpload(
         res.url,
         uploadData.file.name,
@@ -244,33 +273,35 @@ function GalleryContent() {
         console.warn('Failed to record file upload, but continuing...');
       }
 
-      const newImage: GalleryImage = {
-        id: `upload-${Date.now()}`,
-        url: res.url, // Use the CDN URL from EdgeStore
+      // Create gallery image in database
+      const newImage = await createGalleryImage({
+        url: res.url,
         title: uploadData.title,
         description: uploadData.description,
         category: uploadData.category || 'uncategorized',
         tags: uploadData.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-        likes: 0,
-        author: 'current-user',
-        createdAt: new Date().toISOString().split('T')[0],
         size: uploadData.file.size
-      };
-
-      // Prepend new image to gallery
-      setImages((prev) => [newImage, ...prev]);
-
-      // Reset form values
-      setUploadData({
-        title: '',
-        description: '',
-        category: '',
-        tags: '',
-        file: null,
       });
-      setShowUploadDialog(false);
-      setMessage('Ảnh đã được tải lên thành công!');
-      setTimeout(() => setMessage(''), 3000);
+
+      if (newImage) {
+        // Reload images to get the latest data
+        await loadImages();
+        await loadCategories();
+        await loadTags();
+
+        setUploadData({
+          title: '',
+          description: '',
+          category: '',
+          tags: '',
+          file: null,
+        });
+        setShowUploadDialog(false);
+        setMessage('Ảnh đã được tải lên thành công!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi lưu thông tin ảnh');
+      }
     } catch (error) {
       console.error('Image upload failed:', error);
       setMessage('Lỗi khi tải ảnh lên');
@@ -289,24 +320,32 @@ function GalleryContent() {
     });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingImage) return;
 
-    setImages(prev => prev.map(img =>
-      img.id === editingImage.id
-        ? {
-            ...img,
-            title: editData.title,
-            description: editData.description,
-            tags: editData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
-          }
-        : img
-    ));
+    try {
+      const updatedImage = await updateGalleryImage(editingImage.id, {
+        title: editData.title,
+        description: editData.description,
+        tags: editData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+      });
 
-    setEditingImage(null);
-    setEditData({ title: '', description: '', tags: '' });
-    setMessage('Ảnh đã được cập nhật!');
-    setTimeout(() => setMessage(''), 3000);
+      if (updatedImage) {
+        // Reload images to get the latest data
+        await loadImages();
+        await loadTags();
+
+        setEditingImage(null);
+        setEditData({ title: '', description: '', tags: '' });
+        setMessage('Ảnh đã được cập nhật!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi cập nhật ảnh');
+      }
+    } catch (error) {
+      console.error('Error updating image:', error);
+      setMessage('Có lỗi xảy ra khi cập nhật ảnh');
+    }
   };
 
   const handleDelete = async (imageId: string) => {
@@ -316,7 +355,7 @@ function GalleryContent() {
     try {
       setLoading(true);
       
-      // Only try to delete from EdgeStore if it's an EdgeStore URL
+      // Delete from EdgeStore if it's an EdgeStore URL
       if (imageToDelete.url.includes('edgestore') || imageToDelete.url.includes('files.edgestore.dev')) {
         try {
           console.log('Attempting to delete from EdgeStore:', imageToDelete.url);
@@ -324,22 +363,28 @@ function GalleryContent() {
             url: imageToDelete.url,
           });
           console.log('Successfully deleted from EdgeStore');
-          
-          // Remove from storage tracking
-          await removeFileUpload(imageToDelete.url);
         } catch (edgeStoreError: any) {
           console.warn('EdgeStore deletion failed (this is OK for external URLs):', edgeStoreError.message);
-          // Don't throw error here - we still want to remove from UI even if EdgeStore deletion fails
         }
-      } else {
-        console.log('Skipping EdgeStore deletion for external URL:', imageToDelete.url);
       }
 
-      // Always remove from UI state regardless of EdgeStore deletion result
-      setImages(prev => prev.filter(img => img.id !== imageId));
-      setSelectedImage(null);
-      setMessage('Ảnh đã được xóa!');
-      setTimeout(() => setMessage(''), 3000);
+      // Remove from storage tracking
+      await removeFileUpload(imageToDelete.url);
+
+      // Delete from database
+      const success = await deleteGalleryImage(imageId);
+      if (success) {
+        // Reload images to get the latest data
+        await loadImages();
+        await loadCategories();
+        await loadTags();
+
+        setSelectedImage(null);
+        setMessage('Ảnh đã được xóa!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi xóa ảnh');
+      }
     } catch (error: any) {
       console.error('Delete failed:', error);
       setMessage(`Lỗi khi xóa ảnh: ${error.message || 'Unknown error'}`);
@@ -363,7 +408,6 @@ function GalleryContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Immediate file validation
     if (!file.type.startsWith('image/')) {
       setMessage('Vui lòng chọn file ảnh hợp lệ');
       setTimeout(() => setMessage(''), 3000);
@@ -379,8 +423,7 @@ function GalleryContent() {
     setUploadData(prev => ({ ...prev, file }));
   };
 
-  const categories = ['all', ...Array.from(new Set(images.map(img => img.category)))];
-  const allTags = Array.from(new Set(images.flatMap(img => img.tags)));
+  const categoriesWithAll = ['all', ...categories];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -503,6 +546,7 @@ function GalleryContent() {
                         <SelectItem value="urban">Urban</SelectItem>
                         <SelectItem value="lifestyle">Lifestyle</SelectItem>
                         <SelectItem value="adventure">Adventure</SelectItem>
+                        <SelectItem value="uncategorized">Chưa phân loại</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -560,7 +604,7 @@ function GalleryContent() {
                   <SelectValue placeholder="Chọn danh mục" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(category => (
+                  {categoriesWithAll.map(category => (
                     <SelectItem key={category} value={category}>
                       {category === 'all' ? 'Tất cả' : category}
                     </SelectItem>
@@ -607,7 +651,14 @@ function GalleryContent() {
           </div>
 
           {/* Gallery Content */}
-          {filteredImages.length > 0 ? (
+          {loading && images.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center gap-2 text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#93E1D8]"></div>
+                Đang tải ảnh...
+              </div>
+            </div>
+          ) : filteredImages.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredImages.map((image) => (
                 <div
@@ -662,14 +713,16 @@ function GalleryContent() {
                         >
                           <Download className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleEdit(image)}
-                          className="bg-white/90 hover:bg-white"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
+                        {currentUser && currentUser.id === image.authorId && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleEdit(image)}
+                            className="bg-white/90 hover:bg-white"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -707,12 +760,16 @@ function GalleryContent() {
                       )}
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>@{image.author}</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          <span>@{image.author}</span>
+                        </div>
                         <div className="flex items-center gap-1">
                           <Heart className="h-3 w-3" />
                           <span>{image.likes}</span>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2">
                         {favoriteImages.has(image.id) && (
                           <Star className="h-3 w-3 text-yellow-500 fill-current" />
                         )}
@@ -735,25 +792,33 @@ function GalleryContent() {
                   <ImageIcon className="h-12 w-12 text-[#93E1D8]" />
                 </div>
                 <h3 className="font-cormorant text-2xl font-light mb-2">
-                  Chưa có ảnh nào
+                  {searchTerm || selectedCategory !== 'all' || selectedTags.length > 0
+                    ? 'Không tìm thấy ảnh nào'
+                    : 'Chưa có ảnh nào'
+                  }
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Hãy bắt đầu bằng cách tải lên những bức ảnh đẹp nhất của bạn
+                  {searchTerm || selectedCategory !== 'all' || selectedTags.length > 0
+                    ? 'Thử thay đổi bộ lọc để tìm thấy ảnh bạn cần'
+                    : 'Hãy bắt đầu bằng cách tải lên những bức ảnh đẹp nhất của bạn'
+                  }
                 </p>
-                <Button 
-                  onClick={() => setShowUploadDialog(true)}
-                  className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full"
-                  disabled={storageInfo?.remaining === 0}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh đầu tiên'}
-                </Button>
+                {!searchTerm && selectedCategory === 'all' && selectedTags.length === 0 && (
+                  <Button 
+                    onClick={() => setShowUploadDialog(true)}
+                    className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full"
+                    disabled={storageInfo?.remaining === 0}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh đầu tiên'}
+                  </Button>
+                )}
               </div>
             </div>
           )}
 
           {/* Loading */}
-          {loading && (
+          {loading && images.length > 0 && (
             <div className="text-center py-8">
               <div className="inline-flex items-center gap-2 text-muted-foreground">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#93E1D8]"></div>
@@ -801,15 +866,17 @@ function GalleryContent() {
                       <Download className="h-4 w-4" />
                       Tải về
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleDelete(selectedImage.id)}
-                      className="text-red-500 hover:bg-red-50"
-                      disabled={loading}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {currentUser && currentUser.id === selectedImage.authorId && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDelete(selectedImage.id)}
+                        className="text-red-500 hover:bg-red-50"
+                        disabled={loading}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </DialogTitle>
               </DialogHeader>
@@ -844,7 +911,7 @@ function GalleryContent() {
               </div>
               
               <div className="text-sm text-muted-foreground mt-2 flex items-center justify-between">
-                <span>Tác giả: @{selectedImage.author} • {selectedImage.createdAt}</span>
+                <span>Tác giả: @{selectedImage.author} • {new Date(selectedImage.createdAt).toLocaleDateString('vi-VN')}</span>
                 {selectedImage.size && (
                   <span>Kích thước: {formatBytes(selectedImage.size)}</span>
                 )}
