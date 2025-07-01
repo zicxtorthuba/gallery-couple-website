@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Chrome, Shield, Lock, Loader2, CheckCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import Iridescence from "@/components/ui/Iridescence";
 import { signInWithGoogle, getCurrentUser, onAuthStateChange } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +19,65 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Handle OAuth callback with tokens in URL fragment
+    const handleOAuthCallback = async () => {
+      const hash = window.location.hash;
+      
+      if (hash && hash.includes('access_token')) {
+        console.log('OAuth callback detected with tokens in URL');
+        setIsLoading(true);
+        
+        try {
+          // Extract tokens from URL fragment
+          const params = new URLSearchParams(hash.substring(1));
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          const expiresIn = params.get('expires_in');
+          const tokenType = params.get('token_type');
+          
+          if (accessToken) {
+            console.log('Setting session with tokens from URL');
+            
+            // Set the session using the tokens from URL
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+            
+            if (error) {
+              console.error('Error setting session:', error);
+              setError('Lỗi xử lý phiên đăng nhập. Vui lòng thử lại.');
+              setDebugInfo(`Chi tiết: ${error.message}`);
+            } else if (data.user) {
+              console.log('Session set successfully, user:', data.user.email);
+              
+              // Clear the URL hash
+              window.history.replaceState({}, document.title, window.location.pathname);
+              
+              setShowSuccess(true);
+              setTimeout(() => {
+                router.push('/');
+              }, 2000);
+            } else {
+              setError('Không thể tạo phiên đăng nhập. Vui lòng thử lại.');
+            }
+          } else {
+            setError('Không nhận được token từ Google. Vui lòng thử lại.');
+          }
+        } catch (error: any) {
+          console.error('Error handling OAuth callback:', error);
+          setError('Lỗi xử lý callback từ Google. Vui lòng thử lại.');
+          setDebugInfo(`Chi tiết: ${error.message}`);
+        } finally {
+          setIsLoading(false);
+        }
+        
+        return true; // Indicates we handled the callback
+      }
+      
+      return false; // No callback to handle
+    };
+
     // Check for error in URL params
     const errorParam = searchParams.get('error');
     const errorMessage = searchParams.get('message');
@@ -61,29 +121,35 @@ export default function LoginPage() {
       newUrl.searchParams.delete('error');
       newUrl.searchParams.delete('message');
       window.history.replaceState({}, '', newUrl.toString());
+      return;
     }
 
-    // Check if user is already authenticated
-    const checkAuth = async () => {
-      try {
-        const user = await getCurrentUser();
-        if (user) {
-          console.log('User already authenticated:', user.email);
-          setShowSuccess(true);
-          setTimeout(() => {
-            router.push('/');
-          }, 2000);
-        }
-      } catch (error) {
-        console.error('Error checking auth:', error);
-      }
-    };
+    // Handle OAuth callback first
+    const handledCallback = handleOAuthCallback();
     
-    checkAuth();
+    if (!handledCallback) {
+      // Check if user is already authenticated
+      const checkAuth = async () => {
+        try {
+          const user = await getCurrentUser();
+          if (user) {
+            console.log('User already authenticated:', user.email);
+            setShowSuccess(true);
+            setTimeout(() => {
+              router.push('/');
+            }, 2000);
+          }
+        } catch (error) {
+          console.error('Error checking auth:', error);
+        }
+      };
+      
+      checkAuth();
+    }
 
     // Listen for auth state changes
     const { data: { subscription } } = onAuthStateChange((user) => {
-      if (user) {
+      if (user && !showSuccess) {
         console.log('User authenticated via state change:', user.email);
         setShowSuccess(true);
         setTimeout(() => {
@@ -95,7 +161,7 @@ export default function LoginPage() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [router, searchParams]);
+  }, [router, searchParams, showSuccess]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -126,6 +192,11 @@ export default function LoginPage() {
     setError(null);
     setDebugInfo('');
     setIsLoading(false);
+    
+    // Clear any tokens from URL
+    if (window.location.hash) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   };
 
   if (showSuccess) {
@@ -257,6 +328,9 @@ export default function LoginPage() {
                 <p>Origin: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</p>
                 <p>Callback URL: {typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : 'N/A'}</p>
                 <p>Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
+                {typeof window !== 'undefined' && window.location.hash && (
+                  <p>Hash: {window.location.hash.substring(0, 100)}...</p>
+                )}
               </div>
             )}
 

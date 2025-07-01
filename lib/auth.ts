@@ -40,10 +40,10 @@ export const signInWithGoogle = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/login`, // Redirect back to login page to handle tokens
         queryParams: {
           access_type: 'offline',
-          prompt: 'select_account', // Changed from 'consent' to 'select_account'
+          prompt: 'select_account',
         },
       }
     });
@@ -69,10 +69,14 @@ export const signOut = async () => {
       throw error;
     }
     
-    // Clear cookies
+    // Clear cookies and local storage
     if (typeof window !== 'undefined') {
+      // Clear Supabase cookies
       document.cookie = 'sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       document.cookie = 'sb-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      
+      // Clear any localStorage items
+      localStorage.clear();
       
       // Force reload to clear any cached state
       window.location.href = '/';
