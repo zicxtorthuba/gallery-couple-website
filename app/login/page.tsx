@@ -14,20 +14,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string>('');
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    setMounted(true);
-
     // Handle OAuth callback with tokens in URL fragment
     const handleOAuthCallback = async () => {
       const hash = window.location.hash;
       
       if (hash && hash.includes('access_token')) {
-        console.log('OAuth callback detected with tokens in URL');
         setIsLoading(true);
         
         try {
@@ -37,8 +32,6 @@ export default function LoginPage() {
           const refreshToken = params.get('refresh_token');
           
           if (accessToken) {
-            console.log('Setting session with tokens from URL');
-            
             // Set the session using the tokens from URL
             const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
@@ -46,12 +39,8 @@ export default function LoginPage() {
             });
             
             if (error) {
-              console.error('Error setting session:', error);
               setError('Lỗi xử lý phiên đăng nhập. Vui lòng thử lại.');
-              setDebugInfo(`Chi tiết: ${error.message}`);
             } else if (data.user) {
-              console.log('Session set successfully, user:', data.user.email);
-              
               // Clear the URL hash
               window.history.replaceState({}, document.title, window.location.pathname);
               
@@ -66,9 +55,7 @@ export default function LoginPage() {
             setError('Không nhận được token từ Google. Vui lòng thử lại.');
           }
         } catch (error: any) {
-          console.error('Error handling OAuth callback:', error);
           setError('Lỗi xử lý callback từ Google. Vui lòng thử lại.');
-          setDebugInfo(`Chi tiết: ${error.message}`);
         } finally {
           setIsLoading(false);
         }
@@ -81,7 +68,6 @@ export default function LoginPage() {
 
     // Check for error in URL params
     const errorParam = searchParams.get('error');
-    const errorMessage = searchParams.get('message');
     
     if (errorParam) {
       let errorText = '';
@@ -111,10 +97,6 @@ export default function LoginPage() {
           errorText = 'Có lỗi xảy ra. Vui lòng thử lại.';
       }
       
-      if (errorMessage) {
-        setDebugInfo(`Chi tiết: ${decodeURIComponent(errorMessage)}`);
-      }
-      
       setError(errorText);
       
       // Clear error from URL after showing it
@@ -134,14 +116,13 @@ export default function LoginPage() {
         try {
           const user = await getCurrentUser();
           if (user) {
-            console.log('User already authenticated:', user.email);
             setShowSuccess(true);
             setTimeout(() => {
               router.push('/');
             }, 2000);
           }
         } catch (error: any) {
-          console.error('Error checking auth:', error);
+          // Silently handle auth check errors
         }
       };
       
@@ -151,7 +132,6 @@ export default function LoginPage() {
     // Listen for auth state changes
     const { data: { subscription } } = onAuthStateChange((user) => {
       if (user && !showSuccess) {
-        console.log('User authenticated via state change:', user.email);
         setShowSuccess(true);
         setTimeout(() => {
           router.push('/');
@@ -168,29 +148,21 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       setError(null);
-      setDebugInfo('');
       
-      console.log('Starting Google sign in...');
       await signInWithGoogle();
       
-      console.log('Sign in initiated, waiting for redirect...');
-      
     } catch (error: any) {
-      console.error('Sign in error:', error);
       setError(error.message || 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.');
-      setDebugInfo(`Lỗi: ${error.message || 'Unknown error'}`);
       setIsLoading(false);
     }
   };
 
   const clearError = () => {
     setError(null);
-    setDebugInfo('');
   };
 
   const handleRetry = () => {
     setError(null);
-    setDebugInfo('');
     setIsLoading(false);
     
     // Clear any tokens from URL
@@ -269,9 +241,6 @@ export default function LoginPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium">{error}</p>
-                      {debugInfo && (
-                        <p className="text-xs mt-1 opacity-75">{debugInfo}</p>
-                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -311,19 +280,6 @@ export default function LoginPage() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Thử lại
               </Button>
-            )}
-
-            {/* Debug Info */}
-            {process.env.NODE_ENV === 'development' && mounted && (
-              <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
-                <p><strong>Debug Info:</strong></p>
-                <p>URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
-                <p>Origin: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</p>
-                <p>Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
-                {typeof window !== 'undefined' && window.location.hash && (
-                  <p>Hash: {window.location.hash.substring(0, 100)}...</p>
-                )}
-              </div>
             )}
 
             {/* Security Notice */}
