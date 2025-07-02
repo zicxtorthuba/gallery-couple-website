@@ -376,7 +376,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
             <p className="text-muted-foreground mb-6">
               {searchTerm || selectedStatus !== 'all' || selectedTag !== 'all'
                 ? 'Thử thay đổi bộ lọc để tìm thấy bài viết bạn cần'
-                : 'Hãy bắt đầu chia sẻ những câu chuyện và kinh nghiệm của bạn'
+                : 'Hãy bắt đầu chia sẻ những câu chuyện của bạn'
               }
             </p>
             {!searchTerm && selectedStatus === 'all' && selectedTag === 'all' && (

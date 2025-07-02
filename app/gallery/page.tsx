@@ -455,7 +455,7 @@ function GalleryContent() {
               Thư viện ảnh
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Khám phá bộ sưu tập những khoảnh khắc đẹp nhất được chia sẻ bởi cộng đồng
+              Khám phá bộ sưu tập những khoảnh khắc đẹp nhất
             </p>
           </div>
 
