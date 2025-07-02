@@ -32,12 +32,6 @@ export function Navbar() {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
       setLoading(false);
-      
-      // Debug log to see what we're getting
-      if (currentUser) {
-        console.log('Current user in navbar:', currentUser);
-        console.log('Profile image URL:', currentUser.image);
-      }
     };
 
     checkAuth();
@@ -46,12 +40,6 @@ export function Navbar() {
     const { data: { subscription } } = onAuthStateChange((user) => {
       setUser(user);
       setLoading(false);
-      
-      // Debug log to see what we're getting
-      if (user) {
-        console.log('Auth state change in navbar:', user);
-        console.log('Profile image URL:', user.image);
-      }
     });
 
     return () => {
@@ -102,14 +90,6 @@ export function Navbar() {
                       <AvatarImage 
                         src={user.image} 
                         alt={user.name}
-                        onError={(e) => {
-                          console.error('Avatar image failed to load:', user.image);
-                          // Hide the broken image
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        onLoad={() => {
-                          console.log('Avatar image loaded successfully:', user.image);
-                        }}
                       />
                     ) : null}
                     <AvatarFallback className="bg-[#93E1D8] text-white">
@@ -125,12 +105,6 @@ export function Navbar() {
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
                       {user.email}
                     </p>
-                    {/* Debug info - remove this later */}
-                    {user.image && (
-                      <p className="w-[200px] truncate text-xs text-gray-400">
-                        Image: {user.image.substring(0, 30)}...
-                      </p>
-                    )}
                   </div>
                 </div>
                 <DropdownMenuSeparator />

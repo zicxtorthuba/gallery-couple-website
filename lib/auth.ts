@@ -221,8 +221,6 @@ export const isAuthenticated = async (): Promise<boolean> => {
 // Listen to auth state changes with improved error handling
 export const onAuthStateChange = (callback: (user: AuthUser | null) => void) => {
   return supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log('Auth state change:', event, !!session);
-    
     try {
       if (session?.user) {
         // Extract profile picture from multiple possible sources
@@ -252,11 +250,6 @@ export const onAuthStateChange = (callback: (user: AuthUser | null) => void) => 
           image: profilePicture,
           role: session.user.user_metadata?.role || 'user'
         };
-        
-        // Debug log to see what we're getting from Google
-        console.log('User metadata:', session.user.user_metadata);
-        console.log('User identities:', session.user.identities);
-        console.log('Extracted profile picture:', profilePicture);
         
         callback(authUser);
       } else {
