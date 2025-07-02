@@ -5,7 +5,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,7 +19,6 @@ export default function LoginPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     // Handle OAuth callback with tokens in URL fragment
@@ -71,7 +70,8 @@ export default function LoginPage() {
     };
 
     // Check for error in URL params
-    const errorParam = searchParams.get('error');
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
     
     if (errorParam) {
       let errorText = '';
@@ -146,7 +146,7 @@ export default function LoginPage() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [router, searchParams, showSuccess]);
+  }, [router, showSuccess]);
 
   const handleGoogleSignIn = async () => {
     try {
