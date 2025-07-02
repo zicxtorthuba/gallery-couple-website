@@ -260,8 +260,9 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
       
       if (savedPost) {
         setSaveMessage(post ? 'Bài viết đã được cập nhật!' : 'Bài viết đã được tạo!');
+        const postToReturn = savedPost; // ensure non-null for TypeScript
         setTimeout(() => {
-          onSave(savedPost);
+          onSave(postToReturn);
         }, 1000);
       } else {
         setSaveMessage('Có lỗi xảy ra khi lưu bài viết');
