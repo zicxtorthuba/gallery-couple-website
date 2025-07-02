@@ -1,7 +1,11 @@
 "use server"
 
-import { signIn } from "@/auth"
+import { signInWithGoogle } from "@/lib/auth"
 
 export async function authenticate(provider: string) {
-  await signIn(provider)
+  if (provider === 'google') {
+    await signInWithGoogle();
+  } else {
+    throw new Error(`Unsupported provider: ${provider}`);
+  }
 }
