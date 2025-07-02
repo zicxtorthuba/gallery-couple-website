@@ -53,11 +53,31 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
     
     if (!result) return null;
     
+    // Extract profile picture from multiple possible sources
+    const profilePicture = 
+      result.user_metadata?.avatar_url || 
+      result.user_metadata?.picture || 
+      result.user_metadata?.photo_url ||
+      result.user_metadata?.image_url ||
+      result.identities?.[0]?.identity_data?.avatar_url ||
+      result.identities?.[0]?.identity_data?.picture ||
+      undefined;
+
+    // Extract name from multiple possible sources
+    const displayName = 
+      result.user_metadata?.full_name || 
+      result.user_metadata?.name || 
+      result.user_metadata?.display_name ||
+      result.identities?.[0]?.identity_data?.full_name ||
+      result.identities?.[0]?.identity_data?.name ||
+      result.email?.split('@')[0] || 
+      'User';
+    
     return {
       id: result.id,
-      name: result.user_metadata?.full_name || result.user_metadata?.name || result.email?.split('@')[0] || 'User',
+      name: displayName,
       email: result.email || '',
-      image: result.user_metadata?.avatar_url || result.user_metadata?.picture,
+      image: profilePicture,
       role: result.user_metadata?.role || 'user'
     };
   } catch (error: any) {
@@ -71,11 +91,28 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
           console.log('Using cached session data as fallback');
           const parsed = JSON.parse(cachedSession);
           if (parsed.user) {
+            const profilePicture = 
+              parsed.user.user_metadata?.avatar_url || 
+              parsed.user.user_metadata?.picture || 
+              parsed.user.user_metadata?.photo_url ||
+              parsed.user.identities?.[0]?.identity_data?.avatar_url ||
+              parsed.user.identities?.[0]?.identity_data?.picture ||
+              undefined;
+
+            const displayName = 
+              parsed.user.user_metadata?.full_name || 
+              parsed.user.user_metadata?.name || 
+              parsed.user.user_metadata?.display_name ||
+              parsed.user.identities?.[0]?.identity_data?.full_name ||
+              parsed.user.identities?.[0]?.identity_data?.name ||
+              parsed.user.email?.split('@')[0] || 
+              'User';
+
             return {
               id: parsed.user.id,
-              name: parsed.user.user_metadata?.full_name || parsed.user.user_metadata?.name || parsed.user.email?.split('@')[0] || 'User',
+              name: displayName,
               email: parsed.user.email || '',
-              image: parsed.user.user_metadata?.avatar_url || parsed.user.user_metadata?.picture,
+              image: profilePicture,
               role: parsed.user.user_metadata?.role || 'user'
             };
           }
@@ -104,6 +141,8 @@ export const signInWithGoogle = async () => {
             access_type: 'offline',
             prompt: 'select_account',
           },
+          // Request additional scopes for profile information
+          scopes: 'openid email profile'
         }
       });
       
@@ -186,13 +225,39 @@ export const onAuthStateChange = (callback: (user: AuthUser | null) => void) => 
     
     try {
       if (session?.user) {
+        // Extract profile picture from multiple possible sources
+        const profilePicture = 
+          session.user.user_metadata?.avatar_url || 
+          session.user.user_metadata?.picture || 
+          session.user.user_metadata?.photo_url ||
+          session.user.user_metadata?.image_url ||
+          session.user.identities?.[0]?.identity_data?.avatar_url ||
+          session.user.identities?.[0]?.identity_data?.picture ||
+          undefined;
+
+        // Extract name from multiple possible sources
+        const displayName = 
+          session.user.user_metadata?.full_name || 
+          session.user.user_metadata?.name || 
+          session.user.user_metadata?.display_name ||
+          session.user.identities?.[0]?.identity_data?.full_name ||
+          session.user.identities?.[0]?.identity_data?.name ||
+          session.user.email?.split('@')[0] || 
+          'User';
+
         const authUser: AuthUser = {
           id: session.user.id,
-          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          name: displayName,
           email: session.user.email || '',
-          image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+          image: profilePicture,
           role: session.user.user_metadata?.role || 'user'
         };
+        
+        // Debug log to see what we're getting from Google
+        console.log('User metadata:', session.user.user_metadata);
+        console.log('User identities:', session.user.identities);
+        console.log('Extracted profile picture:', profilePicture);
+        
         callback(authUser);
       } else {
         callback(null);
