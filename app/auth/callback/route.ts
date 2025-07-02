@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     code: !!code, 
     error, 
     errorDescription,
+    origin,
     allParams: Object.fromEntries(searchParams.entries())
   });
 
@@ -59,22 +60,25 @@ export async function GET(request: NextRequest) {
       // Set session cookies for better session persistence
       if (data.session) {
         const maxAge = 60 * 60 * 24 * 7; // 7 days
+        const isProduction = process.env.NODE_ENV === 'production';
         
         response.cookies.set('sb-access-token', data.session.access_token, {
           httpOnly: false, // Allow client-side access for Supabase
-          secure: process.env.NODE_ENV === 'production',
+          secure: isProduction,
           sameSite: 'lax',
           maxAge: data.session.expires_in || maxAge,
-          path: '/'
+          path: '/',
+          domain: isProduction ? '.vercel.app' : undefined
         });
         
         if (data.session.refresh_token) {
           response.cookies.set('sb-refresh-token', data.session.refresh_token, {
             httpOnly: false, // Allow client-side access for Supabase
-            secure: process.env.NODE_ENV === 'production',
+            secure: isProduction,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 30, // 30 days
-            path: '/'
+            path: '/',
+            domain: isProduction ? '.vercel.app' : undefined
           });
         }
       }
