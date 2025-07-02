@@ -265,10 +265,12 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
         }, 1000);
       } else {
         setSaveMessage('Có lỗi xảy ra khi lưu bài viết');
+        setTimeout(() => setSaveMessage(''), 3000);
       }
     } catch (error) {
       console.error('Error saving post:', error);
       setSaveMessage('Có lỗi xảy ra khi lưu bài viết');
+      setTimeout(() => setSaveMessage(''), 3000);
     } finally {
       setIsSaving(false);
     }
