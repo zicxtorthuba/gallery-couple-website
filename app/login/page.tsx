@@ -1,5 +1,9 @@
 "use client";
 
+// Next.js static export fails when using useSearchParams without suspense.
+// Force dynamic rendering for this page.
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
