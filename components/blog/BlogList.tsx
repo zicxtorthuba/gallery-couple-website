@@ -431,7 +431,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
               }
             </p>
             {!searchTerm && selectedStatus === 'all' && selectedTag === 'all' && (
-              <Button onClick={onCreatePost} className="bg-[#93E1D8] hover:bg-[#93E1D8]/90">
+              <Button onClick={onCreatePost} className="bg-white/90 hover:bg-white text-[#93E1D8] border border-[#93E1D8]/30">
                 <Plus className="h-4 w-4 mr-2" />
                 Tạo bài viết đầu tiên
               </Button>
@@ -487,7 +487,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
                       <Trash2 className="h-4 w-4 mr-2" />
                       Xóa bài viết
                     </>
-                  )}
+              <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 </Button>
               </div>
             </div>

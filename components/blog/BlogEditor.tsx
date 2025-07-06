@@ -317,7 +317,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#7FFFD4] py-6">
+    <div className="min-h-screen bg-[#7FFFD4] py-8">
       <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Storage Indicator */}
       <StorageIndicator 
@@ -368,7 +368,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Title */}
-          <Card>
+          <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Tiêu đề bài viết</CardTitle>
             </CardHeader>
@@ -386,7 +386,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           </Card>
 
           {/* Content Editor */}
-          <Card>
+          <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Nội dung</CardTitle>
             </CardHeader>
@@ -411,7 +411,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Publish Settings */}
-          <Card>
+          <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Cài đặt xuất bản</CardTitle>
             </CardHeader>
@@ -452,7 +452,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           </Card>
 
           {/* Font Settings */}
-          <Card>
+          <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Phông chữ</CardTitle>
             </CardHeader>
@@ -502,7 +502,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           </Card>
 
           {/* Featured Image */}
-          <Card>
+          <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Ảnh đại diện</CardTitle>
             </CardHeader>
@@ -554,7 +554,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           </Card>
 
           {/* Custom Icon */}
-          <Card>
+          <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Biểu tượng tùy chỉnh</CardTitle>
             </CardHeader>
@@ -588,7 +588,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           </Card>
 
           {/* Tags */}
-          <Card>
+          <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Thẻ</CardTitle>
             </CardHeader>
@@ -669,7 +669,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
 
       {/* Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />

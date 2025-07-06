@@ -37,7 +37,7 @@ function BlogContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#7FFFD4]">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4 max-w-6xl">
           {viewMode === 'list' && (

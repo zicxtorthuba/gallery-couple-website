@@ -316,7 +316,7 @@ export function TagManager() {
         {/* Empty State */}
         {tags.length === 0 && (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-[#93E1D8]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Tag className="h-8 w-8 text-[#93E1D8]" />
             </div>
             <h3 className="font-cormorant text-xl font-light mb-2">
