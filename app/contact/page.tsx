@@ -42,7 +42,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="pt-20 pb-16">
@@ -68,7 +68,7 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-[#93E1D8]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-[hsl(var(--primary-teal))]/10 rounded-full flex items-center justify-center flex-shrink-0">
                       <MapPin className="h-5 w-5 text-[#93E1D8]" />
                     </div>
                     <div>
@@ -81,7 +81,7 @@ export default function ContactPage() {
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-[#93E1D8]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-[hsl(var(--primary-teal))]/10 rounded-full flex items-center justify-center flex-shrink-0">
                       <Phone className="h-5 w-5 text-[#93E1D8]" />
                     </div>
                     <div>
@@ -94,7 +94,7 @@ export default function ContactPage() {
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-[#93E1D8]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-[hsl(var(--primary-teal))]/10 rounded-full flex items-center justify-center flex-shrink-0">
                       <Mail className="h-5 w-5 text-[#93E1D8]" />
                     </div>
                     <div>
@@ -107,7 +107,7 @@ export default function ContactPage() {
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-[#93E1D8]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-[hsl(var(--primary-teal))]/10 rounded-full flex items-center justify-center flex-shrink-0">
                       <Clock className="h-5 w-5 text-[#93E1D8]" />
                     </div>
                     <div>
@@ -131,23 +131,23 @@ export default function ContactPage() {
                 <CardContent>
                   <ul className="space-y-3 text-sm text-muted-foreground">
                     <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#93E1D8] rounded-full"></div>
+                      <div className="w-2 h-2 bg-[hsl(var(--primary-teal))] rounded-full"></div>
                       Chụp ảnh cưới
                     </li>
                     <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#93E1D8] rounded-full"></div>
+                      <div className="w-2 h-2 bg-[hsl(var(--primary-teal))] rounded-full"></div>
                       Chụp ảnh gia đình
                     </li>
                     <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#93E1D8] rounded-full"></div>
+                      <div className="w-2 h-2 bg-[hsl(var(--primary-teal))] rounded-full"></div>
                       Chụp ảnh sự kiện
                     </li>
                     <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#93E1D8] rounded-full"></div>
+                      <div className="w-2 h-2 bg-[hsl(var(--primary-teal))] rounded-full"></div>
                       Chụp ảnh cá nhân
                     </li>
                     <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#93E1D8] rounded-full"></div>
+                      <div className="w-2 h-2 bg-[hsl(var(--primary-teal))] rounded-full"></div>
                       Thiết kế album
                     </li>
                   </ul>
@@ -251,6 +251,7 @@ export default function ContactPage() {
             <Card>
               <CardContent className="p-0">
                 <div className="relative h-96 bg-gray-200 rounded-lg overflow-hidden">
+                <div className="relative h-96 bg-muted rounded-lg overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
                       <MapPin className="h-12 w-12 text-[#93E1D8] mx-auto mb-4" />
@@ -269,4 +270,6 @@ export default function ContactPage() {
       <Footer />
     </div>
   );
+}
+  )
 }
