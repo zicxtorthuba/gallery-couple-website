@@ -219,7 +219,7 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
                   <Button
                     onClick={handleSubmitComment}
                     disabled={!newComment.trim() || submitting}
-                    className="bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+                    className="bg-[#93E1D8] text-black hover:bg-[#7BC4B9] disabled:opacity-70"
                   >
                     <Send className="h-4 w-4 mr-2" />
                     {submitting ? 'Đang gửi...' : 'Gửi bình luận'}
@@ -307,7 +307,7 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
                             size="sm"
                             onClick={handleSaveEdit}
                             disabled={!editContent.trim()}
-                            className="bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+                            className="bg-[#93E1D8] text-black hover:bg-[#7BC4B9] disabled:opacity-70"
                           >
                             Lưu
                           </Button>

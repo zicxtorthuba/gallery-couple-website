@@ -616,7 +616,7 @@ function GalleryContent() {
                     <Button 
                       onClick={handleUpload}
                       disabled={!uploadData.file || !uploadData.title || loading}
-                      className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+                      className="flex-1 bg-[#93E1D8] text-black hover:bg-[#7BC4B9] disabled:opacity-70"
                     >
                       <Camera className="h-4 w-4 mr-2" />
                       {loading ? 'Đang tải...' : 'Tải lên'}
@@ -1028,7 +1028,7 @@ function GalleryContent() {
             <div className="flex gap-2 pt-4">
               <Button 
                 onClick={handleSaveEdit}
-                className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+                className="flex-1 bg-[#93E1D8] text-black hover:bg-[#7BC4B9] disabled:opacity-70"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Lưu
