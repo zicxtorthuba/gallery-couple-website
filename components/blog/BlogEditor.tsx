@@ -373,7 +373,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 rows={15}
-                className={`resize-none ${getContentFontClass()} text-base leading-relaxed ${errors.content ? 'border-red-500' : ''}`}
+                className={`resize-none font-cormorant text-base leading-relaxed ${errors.content ? 'border-red-500' : ''}`}
               />
               {errors.content && (
                 <p className="text-red-500 text-sm mt-1">{errors.content}</p>
@@ -655,9 +655,8 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
             {/* Content */}
             <div className="prose prose-lg max-w-none">
               <div 
-                className="text-gray-700 leading-relaxed space-y-6"
+                className={`text-gray-700 leading-relaxed space-y-6 ${getContentFontClass()}`}
                 style={{ 
-                  fontFamily: 'var(--font-cormorant)',
                   fontSize: '1.125rem',
                   lineHeight: '1.8'
                 }}

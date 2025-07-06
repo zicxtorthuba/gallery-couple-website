@@ -278,9 +278,8 @@ export default function BlogPostPage() {
           {/* Content */}
           <article className="prose prose-lg max-w-none">
             <div 
-              className="text-gray-700 leading-relaxed space-y-6"
+              className={`text-gray-700 leading-relaxed space-y-6 ${getContentFontClass()}`}
               style={{ 
-                fontFamily: 'var(--font-cormorant)',
                 fontSize: '1.125rem',
                 lineHeight: '1.8'
               }}
