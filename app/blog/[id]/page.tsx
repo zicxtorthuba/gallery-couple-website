@@ -52,9 +52,26 @@ export default function BlogPostPage() {
     loadUser();
   }, [postId]);
 
+  useEffect(() => {
+    if (user && post) {
+      checkIfSaved();
+    }
+  }, [user, post]);
+
   const loadUser = async () => {
     const currentUser = await getCurrentUser();
     setUser(currentUser);
+  };
+
+  const checkIfSaved = async () => {
+    if (!user || !post) return;
+    
+    try {
+      const saved = await isFavorite('blog', post.id);
+      setIsSaved(saved);
+    } catch (error) {
+      console.error('Error checking save status:', error);
+    }
   };
 
   const loadPost = async () => {
@@ -65,12 +82,6 @@ export default function BlogPostPage() {
       if (foundPost && foundPost.status === 'published') {
         setPost(foundPost);
         setLikes(foundPost.likes);
-        
-        // Check if user has saved this post
-        if (user) {
-          const saved = await isFavorite('blog', postId);
-          setIsSaved(saved);
-        }
         
         // Get related posts (same tags, excluding current post)
         const allPosts = await getBlogPosts(false); // Only published posts
