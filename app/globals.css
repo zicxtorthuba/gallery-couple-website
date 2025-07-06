@@ -82,3 +82,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom utilities for text wrapping */
+@layer utilities {
+  .break-words {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .hyphens-auto {
+    hyphens: auto;
+  }
+  
+  /* Ensure long words break properly in all browsers */
+  .text-wrap-anywhere {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+}

@@ -98,7 +98,7 @@ export function BlogPreview() {
                           {post.customIcon && (
                             <IconComponent className="h-5 w-5 text-[#93E1D8] mt-1 flex-shrink-0" />
                           )}
-                          <h3 className="font-cormorant text-xl font-medium group-hover:text-[#93E1D8] transition-colors line-clamp-2">
+                          <h3 className="font-cormorant text-xl font-medium group-hover:text-[#93E1D8] transition-colors line-clamp-2 break-words">
                             {post.title}
                           </h3>
                         </div>

@@ -286,7 +286,7 @@ function ProfileContent() {
                         {favoriteBlogItems.slice(0, 3).map((post) => (
                           <Link key={post.id} href={`/blog/${post.id}`} className="block group">
                             <div className="p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                              <h4 className="font-medium text-sm group-hover:text-[#93E1D8] line-clamp-1">
+                              <h4 className="font-medium text-sm group-hover:text-[#93E1D8] line-clamp-1 break-words">
                                 {post.title}
                               </h4>
                               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -433,7 +433,7 @@ function ProfileContent() {
                             
                             <div className="p-6 flex-1">
                               <div className="flex items-start justify-between mb-3">
-                                <h3 className="font-cormorant text-xl font-medium line-clamp-2">
+                                <h3 className="font-cormorant text-xl font-medium line-clamp-2 break-words">
                                   {post.title}
                                 </h3>
                                 <Button
