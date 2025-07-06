@@ -6,18 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Crop, 
-  RotateCcw, 
-  Download, 
-  Upload,
-  Move,
-  ZoomIn,
-  ZoomOut,
-  Square,
-  Rectangle,
-  Scissors
-} from 'lucide-react';
+import { Crop, RotateCcw, Download, Upload, Move, ZoomIn, ZoomOut, Square, RectangleEllipsis as Rectangle, Scissors } from 'lucide-react';
 
 interface ImageCropperProps {
   isOpen: boolean;
