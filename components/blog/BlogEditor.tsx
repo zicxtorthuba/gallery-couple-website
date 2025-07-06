@@ -40,11 +40,23 @@ import {
   MAX_FILE_SIZE,
   type StorageInfo
 } from '@/lib/storage';
+import { getTitleFontClass, getContentFontClass } from '@/lib/font-utils';
 
 interface BlogEditorProps {
   post?: BlogPost;
   onSave: (post: BlogPost) => void;
   onCancel: () => void;
+}
+
+interface BlogFormData {
+  title: string;
+  content: string;
+  featuredImage: string;
+  customIcon: string;
+  tags: string[];
+  status: 'draft' | 'published';
+  titleFont: 'serif' | 'sans' | 'mono' | '';
+  contentFont: 'serif' | 'sans' | 'mono' | '';
 }
 
 const iconOptions = [
@@ -59,13 +71,15 @@ const iconOptions = [
 
 export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const [user, setUser] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BlogFormData>({
     title: post?.title || '',
     content: post?.content || '',
     featuredImage: post?.featuredImage || '',
     customIcon: post?.customIcon || '',
     tags: post?.tags || [],
-    status: post?.status || 'draft' as 'draft' | 'published'
+    status: post?.status || 'draft',
+    titleFont: (post?.titleFont as BlogFormData['titleFont']) || '',
+    contentFont: (post?.contentFont as BlogFormData['contentFont']) || ''
   });
   
   const [newTag, setNewTag] = useState('');
@@ -242,7 +256,9 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           featuredImage: formData.featuredImage || undefined,
           customIcon: formData.customIcon || undefined,
           tags: formData.tags,
-          status: formData.status
+          status: formData.status,
+          titleFont: formData.titleFont || undefined,
+          contentFont: formData.contentFont || undefined
         });
       } else {
         savedPost = await createBlogPost({
@@ -254,7 +270,9 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           status: formData.status,
           author: user.name,
           authorId: user.id,
-          authorAvatar: user.image || ''
+          authorAvatar: user.image || '',
+          titleFont: formData.titleFont || undefined,
+          contentFont: formData.contentFont || undefined
         });
       }
       
@@ -403,7 +421,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                     id="publish-status"
                     checked={formData.status === 'published'}
                     onCheckedChange={(checked) => 
-                      setFormData(prev => ({ ...prev, status: checked ? 'published' : 'draft' }))
+                      setFormData(prev => ({ ...prev, status: checked ? 'published' : 'draft' }));
                     }
                   />
                   <span className={formData.status === 'published' ? 'font-medium' : 'text-muted-foreground'}>
@@ -514,6 +532,43 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
             </CardContent>
           </Card>
 
+          {/* Font Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Cài đặt Font chữ</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="title-font">Font chữ tiêu đề</Label>
+                <select
+                  id="title-font"
+                  value={formData.titleFont}
+                  onChange={(e) => setFormData(prev => ({ ...prev, titleFont: e.target.value as BlogFormData['titleFont'] }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-transparent dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Mặc định</option>
+                  <option value="serif">Serif</option>
+                  <option value="sans">Sans-serif</option>
+                  <option value="mono">Mono</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="content-font">Font chữ nội dung</Label>
+                <select
+                  id="content-font"
+                  value={formData.contentFont}
+                  onChange={(e) => setFormData(prev => ({ ...prev, contentFont: e.target.value as BlogFormData['contentFont'] }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-transparent dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Mặc định</option>
+                  <option value="serif">Serif</option>
+                  <option value="sans">Sans-serif</option>
+                  <option value="mono">Mono</option>
+                </select>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Tags */}
           <Card>
             <CardHeader>
@@ -611,7 +666,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 {formData.customIcon && (
                   <SelectedIcon className="h-6 w-6 text-[#93E1D8]" />
                 )}
-                <h1 className="font-cormorant text-3xl font-light">
+                <h1 className={`font-cormorant text-3xl font-light ${getTitleFontClass(formData.titleFont || undefined)}`}>
                   {formData.title || 'Tiêu đề bài viết'}
                 </h1>
               </div>
@@ -655,7 +710,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
             {/* Content */}
             <div className="prose prose-lg max-w-none">
               <div 
-                className={`text-gray-700 leading-relaxed space-y-6 ${getContentFontClass()}`}
+                className={`text-gray-700 leading-relaxed space-y-6 ${getContentFontClass(formData.contentFont || undefined)}`}
                 style={{ 
                   fontSize: '1.125rem',
                   lineHeight: '1.8'

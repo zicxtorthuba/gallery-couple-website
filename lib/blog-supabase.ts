@@ -8,8 +8,8 @@ export interface BlogPost {
   excerpt: string;
   featuredImage?: string;
   customIcon?: string;
-  titleFont?: string;
-  contentFont?: string;
+  titleFont?: 'serif' | 'sans' | 'mono';
+  contentFont?: 'serif' | 'sans' | 'mono';
   author: string;
   authorId: string;
   authorAvatar: string;
@@ -144,6 +144,8 @@ export const createBlogPost = async (postData: Partial<BlogPost>): Promise<BlogP
       excerpt,
       featured_image: postData.featuredImage || null,
       custom_icon: postData.customIcon || null,
+      title_font: postData.titleFont,
+      content_font: postData.contentFont,
       author_id: user.id,
       author_name: user.name,
       author_avatar: user.image || null,
