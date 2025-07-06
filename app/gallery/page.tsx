@@ -475,7 +475,7 @@ function GalleryContent() {
   const categoriesWithAll = ['all', ...categories];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4">
           {/* Storage Indicator */}
@@ -838,7 +838,7 @@ function GalleryContent() {
             /* Empty State */
             <div className="text-center py-16">
               <div className="max-w-md mx-auto">
-                <div className="w-24 h-24 bg-[hsl(var(--primary-teal))]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="w-24 h-24 bg-[#93E1D8]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                   <ImageIcon className="h-12 w-12 text-[#93E1D8]" />
                 </div>
                 <h3 className="font-cormorant text-2xl font-light mb-2">

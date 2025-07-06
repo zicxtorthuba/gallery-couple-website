@@ -58,9 +58,8 @@ export default function RootLayout({
       <body className={`${inter.variable} ${cormorant.variable} ${dancingScript.variable} ${amaticSC.variable} ${vt323.variable} ${eduQLD.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem={true}
-          disableTransitionOnChange={false}
+          defaultTheme="light"
+          enableSystem={false}
         >
           <EdgeStoreProvider>
             {children}

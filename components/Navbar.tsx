@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Settings } from "lucide-react";
 import { getCurrentUser, signOut, onAuthStateChange, type AuthUser } from "@/lib/auth";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -80,7 +79,6 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <ThemeToggle />
           {loading ? (
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
           ) : user ? (

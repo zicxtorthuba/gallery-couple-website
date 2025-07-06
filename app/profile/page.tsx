@@ -131,7 +131,7 @@ function ProfileContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gray-50">
         <div className="pt-20 pb-16 flex justify-center items-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
         </div>
@@ -141,7 +141,7 @@ function ProfileContent() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gray-50">
         <div className="pt-20 pb-16 text-center">
           <p className="text-muted-foreground">Không thể tải thông tin người dùng</p>
         </div>
@@ -150,7 +150,7 @@ function ProfileContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4 max-w-6xl">
           {/* Profile Header */}
