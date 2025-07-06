@@ -69,13 +69,14 @@ export function Navbar() {
       <div className="container mx-auto flex items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
           <span className="font-cormorant text-2xl font-semibold tracking-tight text-[#93E1D8]">
+          <span className="font-cormorant text-2xl font-semibold tracking-tight text-[#FFA69E]">
             Zunhee
           </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          <NavLink href="/gallery">Gallery</NavLink>
-          <NavLink href="/blog">Blog</NavLink>
+          <NavLink href="/gallery" color="#FFA69E">Gallery</NavLink>
+          <NavLink href="/blog" color="#FFA69E">Blog</NavLink>
         </nav>
 
         <div className="flex items-center gap-4">
@@ -125,7 +126,7 @@ export function Navbar() {
             <Link href="/login">
               <Button 
                 variant="outline" 
-                className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 rounded-full px-6"
+                className="border-[#FFA69E] text-[#FFA69E] hover:bg-[#FFA69E]/10 rounded-full px-6"
               >
                 <User className="h-4 w-4 mr-2" />
                 Đăng nhập
@@ -139,12 +140,31 @@ export function Navbar() {
   );
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({ href, children, color = "#FFA69E" }: { href: string; children: React.ReactNode; color?: string }) {
   return (
     <Link
       href={href}
-      className="relative font-medium text-[#93E1D8] transition-colors hover:text-[#FFA69E] after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[#93E1D8] after:transition-all hover:after:w-full"
+      className="relative font-medium transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:transition-all hover:after:w-full"
+      style={{ 
+        color: color,
+        '--hover-color': '#FF8A80',
+        '--after-bg': color
+      } as React.CSSProperties}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = '#FF8A80';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = color;
+      }}
     >
+      <style jsx>{`
+        a::after {
+          background-color: ${color};
+        }
+        a:hover::after {
+          width: 100%;
+        }
+      `}</style>
       {children}
     </Link>
   );
@@ -220,14 +240,14 @@ function MobileMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =>
               <Link
                 href="/gallery"
                 onClick={() => setIsOpen(false)}
-                className="font-cormorant transition-colors text-[#93E1D8] hover:text-[#FFA69E]"
+                className="font-cormorant transition-colors text-[#FFA69E] hover:text-[#FF8A80]"
               >
                 Gallery
               </Link>
               <Link
                 href="/blog"
                 onClick={() => setIsOpen(false)}
-                className="font-cormorant transition-colors text-[#93E1D8] hover:text-[#FFA69E]"
+                className="font-cormorant transition-colors text-[#FFA69E] hover:text-[#FF8A80]"
               >
                 Blog
               </Link>
@@ -239,7 +259,7 @@ function MobileMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =>
                     setIsOpen(false);
                   }}
                   variant="outline"
-                  className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 rounded-full px-6"
+                  className="border-[#FFA69E] text-[#FFA69E] hover:bg-[#FFA69E]/10 rounded-full px-6"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Đăng xuất
@@ -251,7 +271,7 @@ function MobileMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =>
                 >
                   <Button 
                     variant="outline" 
-                    className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 rounded-full px-6"
+                    className="border-[#FFA69E] text-[#FFA69E] hover:bg-[#FFA69E]/10 rounded-full px-6"
                   >
                     <User className="h-4 w-4 mr-2" />
                     Đăng nhập

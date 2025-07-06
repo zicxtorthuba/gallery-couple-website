@@ -220,10 +220,11 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[#7FFFD4] py-8">
+      <div className="max-w-6xl mx-auto px-4 space-y-6">
       {/* Success/Error Messages */}
       {message && (
-        <Alert className={message.includes('Lỗi') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
+        <Alert className={message.includes('Lỗi') ? 'border-red-200 bg-red-50/90' : 'border-green-200 bg-green-50/90'}>
           {message.includes('Lỗi') ? (
             <AlertTriangle className="h-4 w-4 text-red-500" />
           ) : (
@@ -237,7 +238,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border-white/50">
           <h1 className="font-cormorant text-3xl font-light">Quản lý Blog</h1>
           <p className="text-muted-foreground">
             Tạo và quản lý các bài viết của bạn
@@ -250,7 +251,8 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border-white/50">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -289,6 +291,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
           {filteredPosts.length} bài viết
         </div>
       </div>
+      </div>
 
       {/* Posts List */}
       {filteredPosts.length > 0 ? (
@@ -297,7 +300,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
             const IconComponent = getPostIcon(post.customIcon);
             const isAuthor = canEditPost(post);
             return (
-              <Card key={post.id} className="hover:shadow-lg transition-shadow">
+              <Card key={post.id} className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardContent className="p-0">
                   {/* Featured Image */}
                   {post.featuredImage ? (
@@ -401,7 +404,8 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
                           </Button>
                         </>
                       ) : (
-                        <div className="flex-1 text-center">
+                        <div className="flex-1 text-center text-xs text-muted-foreground">
+                          Chỉ tác giả mới có thể chỉnh sửa
                         </div>
                       )}
                     </div>
@@ -414,7 +418,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
       ) : (
         /* Empty State */
         <div className="text-center py-16">
-          <div className="max-w-md mx-auto">
+          <div className="max-w-md mx-auto bg-white/95 backdrop-blur-sm rounded-xl p-8 shadow-lg border-white/50">
             <div className="w-24 h-24 bg-[#93E1D8]/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <BookOpen className="h-12 w-12 text-[#93E1D8]" />
             </div>
@@ -442,7 +446,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => !deleting && setDeleteConfirm(null)}>
-        <DialogContent>
+        <DialogContent className="bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -494,6 +498,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
