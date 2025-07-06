@@ -209,7 +209,7 @@ export default function BlogPostPage() {
               {post.customIcon && (
                 <PostIcon className="h-8 w-8 text-[#93E1D8]" />
               )}
-              <h1 className={`text-4xl md:text-5xl font-light leading-tight ${getFontClass(post.titleFont)}`}>
+              <h1 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light leading-tight break-words hyphens-auto ${getFontClass(post.titleFont)}`}>
                 {post.title}
               </h1>
             </div>

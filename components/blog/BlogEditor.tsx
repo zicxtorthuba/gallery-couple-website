@@ -376,7 +376,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 placeholder="Nhập tiêu đề bài viết..."
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className={`text-lg ${getFontClass(formData.titleFont)} ${errors.title ? 'border-red-500' : ''}`}
+                className={`text-lg break-words ${getFontClass(formData.titleFont)} ${errors.title ? 'border-red-500' : ''}`}
               />
               {errors.title && (
                 <p className="text-red-500 text-sm mt-1">{errors.title}</p>
