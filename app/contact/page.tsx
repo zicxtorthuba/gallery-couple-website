@@ -251,13 +251,14 @@ export default function ContactPage() {
             <Card>
               <CardContent className="p-0">
                 <div className="relative h-96 bg-gray-200 rounded-lg overflow-hidden">
-                <div className="relative h-96 bg-muted rounded-lg overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <MapPin className="h-12 w-12 text-[#93E1D8] mx-auto mb-4" />
-                      <p className="text-muted-foreground">
-                        Bản đồ sẽ được hiển thị tại đây
-                      </p>
+                  <div className="relative h-96 bg-muted rounded-lg overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <MapPin className="h-12 w-12 text-[#93E1D8] mx-auto mb-4" />
+                        <p className="text-muted-foreground">
+                          Bản đồ sẽ được hiển thị tại đây
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -270,6 +271,4 @@ export default function ContactPage() {
       <Footer />
     </div>
   );
-}
-  )
 }
