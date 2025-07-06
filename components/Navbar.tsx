@@ -72,6 +72,7 @@ export function Navbar() {
           <span className="font-cormorant text-2xl font-semibold tracking-tight text-[#FFA69E]">
             Zunhee
           </span>
+          </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
