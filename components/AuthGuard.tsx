@@ -49,10 +49,11 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
 
   if (!user) {
     return fallback || (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="text-center p-8">
             <div className="w-16 h-16 bg-[#93E1D8]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-[hsl(var(--primary-teal))]/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <Lock className="h-8 w-8 text-[#93E1D8]" />
             </div>
             <h2 className="font-cormorant text-2xl font-light mb-4">
