@@ -56,7 +56,7 @@ export default function RootLayout({
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Playwrite+VN:wght@100..400&family=Pinyon+Script&display=swap" rel="stylesheet" />
       </head>
-      <body className={`${inter.variable} ${cormorant.variable} ${dancingScript.variable} ${amaticSC.variable} ${vt323.variable} ${eduQLD.variable} font-sans`}>
+      <body className={`${inter.variable} ${cormorant.variable} ${dancingScript.variable} ${amaticSC.variable} ${vt323.variable} ${eduQLD.variable} font-sans bg-[#7FFFD4]`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
