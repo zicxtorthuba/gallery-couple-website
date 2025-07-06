@@ -35,6 +35,7 @@ import {
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { AuthGuard } from '@/components/AuthGuard';
+import { AlbumManager } from '@/components/albums/AlbumManager';
 import { useEdgeStore } from '@/lib/edgestore';
 import { 
   isFileSizeValid, 
@@ -62,6 +63,7 @@ import { getCurrentUser } from '@/lib/auth';
 function GalleryContent() {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [filteredImages, setFilteredImages] = useState<GalleryImage[]>([]);
+  const [activeTab, setActiveTab] = useState('images');
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [editingImage, setEditingImage] = useState<GalleryImage | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -475,9 +477,29 @@ function GalleryContent() {
   const categoriesWithAll = ['all', ...categories];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#7FFFD4]">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4">
+          {/* Header */}
+          <div className="text-center mb-12 bg-white/95 backdrop-blur-sm rounded-xl p-8 shadow-lg border-white/50">
+            <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4">
+              Thư viện & Album
+            </h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Khám phá bộ sưu tập những khoảnh khắc đẹp nhất và tạo album để tổ chức ảnh của bạn
+            </p>
+          </div>
+
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border-white/50">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="images">Thư viện ảnh</TabsTrigger>
+                <TabsTrigger value="albums">Quản lý Album</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="images">
           {/* Storage Indicator */}
           <StorageIndicator 
             className="mb-6"
@@ -498,15 +520,6 @@ function GalleryContent() {
             </Alert>
           )}
 
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4">
-              Thư viện ảnh
-            </h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Khám phá bộ sưu tập những khoảnh khắc đẹp nhất
-            </p>
-          </div>
 
           {/* Upload Button */}
           <div className="flex justify-center mb-8">
@@ -636,7 +649,7 @@ function GalleryContent() {
           </div>
 
           {/* Filters */}
-          <div className="space-y-4 mb-8">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border-white/50 space-y-4 mb-8">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -710,9 +723,9 @@ function GalleryContent() {
           ) : filteredImages.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredImages.map((image) => (
-                <div
+                <div 
                   key={image.id}
-                  className="bg-white rounded-xl shadow-sm overflow-hidden group hover:shadow-lg transition-all duration-300"
+                  className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 border-white/50"
                 >
                   <div className="relative aspect-square overflow-hidden">
                     <Image
@@ -837,7 +850,7 @@ function GalleryContent() {
           ) : (
             /* Empty State */
             <div className="text-center py-16">
-              <div className="max-w-md mx-auto">
+              <div className="max-w-md mx-auto bg-white/95 backdrop-blur-sm rounded-xl p-8 shadow-lg border-white/50">
                 <div className="w-24 h-24 bg-[#93E1D8]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                   <ImageIcon className="h-12 w-12 text-[#93E1D8]" />
                 </div>
@@ -866,7 +879,12 @@ function GalleryContent() {
               </div>
             </div>
           )}
+            </TabsContent>
 
+            <TabsContent value="albums">
+              <AlbumManager />
+            </TabsContent>
+          </Tabs>
           {/* Loading */}
           {loading && images.length > 0 && (
             <div className="text-center py-8">
@@ -881,7 +899,7 @@ function GalleryContent() {
 
       {/* Image Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-white/95 backdrop-blur-sm">
           {selectedImage && (
             <>
               <DialogHeader>
@@ -981,7 +999,7 @@ function GalleryContent() {
 
       {/* Edit Modal */}
       <Dialog open={!!editingImage} onOpenChange={() => setEditingImage(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle className="font-cormorant text-2xl font-light">
               Chỉnh sửa ảnh
