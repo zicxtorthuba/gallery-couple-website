@@ -921,9 +921,8 @@ function GalleryContent() {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleDelete(selectedImage.id)}
-                        disabled={!currentUser}
                         className="text-red-500 hover:bg-red-50"
-                        disabled={loading}
+                        disabled={!currentUser || loading}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
