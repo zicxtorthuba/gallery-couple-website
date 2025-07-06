@@ -487,7 +487,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
                       <Trash2 className="h-4 w-4 mr-2" />
                       Xóa bài viết
                     </>
-              <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  )}
                 </Button>
               </div>
             </div>
