@@ -74,7 +74,7 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          <NavLink href="/gallery">Thư viện</NavLink>
+          <NavLink href="/gallery">Gallery</NavLink>
           <NavLink href="/blog">Blog</NavLink>
         </nav>
 
@@ -215,7 +215,7 @@ function MobileMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =>
                 onClick={() => setIsOpen(false)}
                 className="font-cormorant transition-colors text-[#93E1D8] hover:text-[#FFA69E]"
               >
-                Thư viện
+                Gallery
               </Link>
               <Link
                 href="/blog"
@@ -223,13 +223,6 @@ function MobileMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =>
                 className="font-cormorant transition-colors text-[#93E1D8] hover:text-[#FFA69E]"
               >
                 Blog
-              </Link>
-              <Link
-                href="/contact"
-                onClick={() => setIsOpen(false)}
-                className="font-cormorant transition-colors text-[#93E1D8] hover:text-[#FFA69E]"
-              >
-                Liên hệ
               </Link>
               
               {user ? (

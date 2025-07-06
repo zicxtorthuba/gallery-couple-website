@@ -1,6 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter, Cormorant_Garamond } from 'next/font/google';
+import { Inter, Oswald } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { EdgeStoreProvider } from '@/lib/edgestore';
@@ -10,7 +10,7 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
-const cormorant = Cormorant_Garamond({
+const cormorant = Oswald({
   subsets: ['latin'],
   weight: ['300', '400', '600'],
   variable: '--font-cormorant',
