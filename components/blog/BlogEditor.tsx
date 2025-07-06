@@ -26,8 +26,7 @@ import {
   FileText,
   CheckCircle,
   AlertCircle,
-  FileImage,
-  Layout
+  FileImage
 } from 'lucide-react';
 import { useEdgeStore } from '@/lib/edgestore';
 import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag } from '@/lib/blog-supabase';
@@ -41,7 +40,6 @@ import {
   MAX_FILE_SIZE,
   type StorageInfo
 } from '@/lib/storage';
-import { BlogLayoutEditor } from '@/components/ui/blog-layout-editor';
 
 interface BlogEditorProps {
   post?: BlogPost;
@@ -92,7 +90,6 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const [saveMessage, setSaveMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
-  const [showLayoutEditor, setShowLayoutEditor] = useState(false);
   
   const { edgestore } = useEdgeStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -306,12 +303,6 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     const font = fontOptions.find(f => f.value === fontValue);
     return font ? font.className : 'font-cormorant';
   };
-  const handleLayoutEditorSave = (htmlContent: string, images: any[]) => {
-    setFormData(prev => ({ ...prev, content: htmlContent }));
-    setShowLayoutEditor(false);
-    setSaveMessage('Bố cục đã được cập nhật!');
-    setTimeout(() => setSaveMessage(''), 3000);
-  };
 
   const SelectedIcon = getSelectedIcon();
 
@@ -325,17 +316,6 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     );
   }
 
-  if (showLayoutEditor) {
-    return (
-      <div className="max-w-6xl mx-auto p-6">
-        <BlogLayoutEditor
-          initialContent={formData.content}
-          onSave={handleLayoutEditorSave}
-          onCancel={() => setShowLayoutEditor(false)}
-        />
-      </div>
-    );
-  }
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Storage Indicator */}
@@ -367,10 +347,6 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           <Button variant="outline" onClick={() => setShowPreview(true)}>
             <Eye className="h-4 w-4 mr-2" />
             Xem trước
-          </Button>
-          <Button variant="outline" onClick={() => setShowLayoutEditor(true)}>
-            <Layout className="h-4 w-4 mr-2" />
-            Bố cục nâng cao
           </Button>
           <Button 
             onClick={handleSave} 
@@ -427,16 +403,6 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
               <p className="text-sm text-muted-foreground mt-2">
                 Hỗ trợ định dạng HTML cơ bản. Sử dụng ## cho tiêu đề phụ, ### cho tiêu đề nhỏ.
               </p>
-              <div className="mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowLayoutEditor(true)}
-                  className="w-full"
-                >
-                  <Layout className="h-4 w-4 mr-2" />
-                  Mở trình chỉnh sửa bố cục nâng cao
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>
