@@ -44,17 +44,27 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [tags, setTags] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const { edgestore } = useEdgeStore();
   
   useEffect(() => {
     loadPosts();
     loadTags();
+    loadCurrentUser();
   }, []);
 
   useEffect(() => {
     filterPosts();
   }, [posts, searchTerm, selectedStatus, selectedTag]);
 
+  const loadCurrentUser = async () => {
+    try {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+    } catch (error) {
+      console.error('Error loading current user:', error);
+    }
+  };
   const loadPosts = async () => {
     try {
       setLoading(true);
@@ -103,12 +113,33 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
   };
 
   const handleDeletePost = (post: BlogPost) => {
+    // Only allow deletion if user is the author
+    if (!currentUser || currentUser.id !== post.authorId) {
+      setMessage('Bạn chỉ có thể xóa bài viết của chính mình');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
     setDeleteConfirm(post);
   };
 
+  const handleEditPost = (post: BlogPost) => {
+    // Only allow editing if user is the author
+    if (!currentUser || currentUser.id !== post.authorId) {
+      setMessage('Bạn chỉ có thể chỉnh sửa bài viết của chính mình');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+    onEditPost(post);
+  };
   const confirmDelete = async () => {
     if (!deleteConfirm || deleting) return;
 
+    // Double-check authorization before deletion
+    if (!currentUser || currentUser.id !== deleteConfirm.authorId) {
+      setMessage('Bạn không có quyền xóa bài viết này');
+      setDeleteConfirm(null);
+      return;
+    }
     try {
       setDeleting(true);
       
@@ -168,6 +199,10 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
     return IconComponent || FileText;
   };
 
+  // Check if current user can edit/delete a post
+  const canEditPost = (post: BlogPost) => {
+    return currentUser && currentUser.id === post.authorId;
+  };
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -252,6 +287,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPosts.map((post) => {
             const IconComponent = getPostIcon(post.customIcon);
+            const isAuthor = canEditPost(post);
             return (
               <Card key={post.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
@@ -312,7 +348,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
                           <User className="h-3 w-3" />
-                          <span>{post.author}</span>
+                          <span>{post.author} {isAuthor && '(Bạn)'}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
@@ -335,24 +371,34 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
                           </Button>
                         </Link>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onEditPost(post)}
-                        className="flex-1"
-                      >
-                        <Edit3 className="h-3 w-3 mr-1" />
-                        Sửa
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeletePost(post)}
-                        className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                        disabled={deleting}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {isAuthor ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditPost(post)}
+                            className="flex-1"
+                          >
+                            <Edit3 className="h-3 w-3 mr-1" />
+                            Sửa
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeletePost(post)}
+                            className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                            disabled={deleting}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="flex-1 text-center">
+                          <span className="text-xs text-muted-foreground">
+                            Bài viết của {post.author}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
