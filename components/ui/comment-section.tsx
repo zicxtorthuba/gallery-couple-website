@@ -91,7 +91,8 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
       }
 
       if (newCommentData) {
-        setComments(prev => [...prev, newCommentData]);
+        const commentToAdd = newCommentData;
+        setComments(prev => [...prev, commentToAdd]);
         setNewComment('');
         setMessage('Bình luận đã được thêm!');
         setTimeout(() => setMessage(''), 3000);
