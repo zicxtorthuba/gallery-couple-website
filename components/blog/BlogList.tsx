@@ -34,6 +34,14 @@ interface BlogListProps {
 }
 
 export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
+  // utility to limit words in a string
+  const truncateWords = (text: string, maxWords: number) => {
+    if (!text) return '';
+    const words = text.split(/\s+/);
+    if (words.length <= maxWords) return text;
+    return words.slice(0, maxWords).join(' ') + '…';
+  };
+
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -311,7 +319,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
                   <div className="p-6">
                     {/* Header */}
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
                         {post.customIcon && (
                           <IconComponent className="h-5 w-5 text-[#93E1D8]" />
                         )}
@@ -324,7 +332,7 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
 
                     {/* Excerpt */}
                     <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
-                      {post.excerpt}
+                      {truncateWords(post.excerpt, 40)}
                     </p>
 
                     {/* Tags */}
@@ -394,9 +402,6 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
                         </>
                       ) : (
                         <div className="flex-1 text-center">
-                          <span className="text-xs text-muted-foreground">
-                            Bài viết của {post.author}
-                          </span>
                         </div>
                       )}
                     </div>
