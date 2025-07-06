@@ -24,7 +24,6 @@ interface ImageCropperProps {
   aspectRatio?: number; // width/height ratio, e.g., 16/9, 1 for square
   maxWidth?: number;
   maxHeight?: number;
-  showAspectRatioOptions?: boolean;
 }
 
 interface CropArea {
@@ -40,8 +39,7 @@ export function ImageCropper({
   onCancel, 
   aspectRatio = 1, // Default to square
   maxWidth = 1200,
-  maxHeight = 1200,
-  showAspectRatioOptions = false,
+  maxHeight = 1200
 }: ImageCropperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -52,7 +50,6 @@ export function ImageCropper({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [currentAspectRatio, setCurrentAspectRatio] = useState(aspectRatio);
 
   // Load image when component mounts
   useState(() => {
@@ -60,14 +57,6 @@ export function ImageCropper({
     setImageUrl(url);
     return () => URL.revokeObjectURL(url);
   });
-
-  const aspectRatioOptions = [
-    { label: 'Vuông (1:1)', value: 1, description: 'Hoàn hảo cho avatar, Instagram' },
-    { label: 'Ngang (16:9)', value: 16/9, description: 'Tuyệt vời cho banner, cover photo' },
-    { label: 'Dọc (9:16)', value: 9/16, description: 'Lý tưởng cho Stories, TikTok' },
-    { label: 'Cổ điển (4:3)', value: 4/3, description: 'Cân bằng cho sử dụng chung' },
-    { label: 'Tự do', value: null, description: 'Không giới hạn tỷ lệ' }
-  ];
 
   const handleImageLoad = useCallback(() => {
     if (!imageRef.current) return;
@@ -246,4 +235,119 @@ export function ImageCropper({
                     top: cropArea.y,
                     width: cropArea.width,
                     height: cropArea.height,
-                    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0
+                    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)'
+                  }}
+                  onMouseDown={handleMouseDown}
+                >
+                  {/* Corner handles */}
+                  <div className="absolute -top-1 -left-1 w-3 h-3 bg-white border border-gray-400 rounded-full" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-white border border-gray-400 rounded-full" />
+                  <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-white border border-gray-400 rounded-full" />
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-gray-400 rounded-full" />
+                  
+                  {/* Center icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Move className="h-6 w-6 text-white drop-shadow-lg" />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="space-y-4">
+          {/* Zoom Control */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Zoom</label>
+              <span className="text-sm text-muted-foreground">{scale[0]}%</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <ZoomOut className="h-4 w-4 text-muted-foreground" />
+              <Slider
+                value={scale}
+                onValueChange={setScale}
+                min={50}
+                max={200}
+                step={10}
+                className="flex-1"
+              />
+              <ZoomIn className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+
+          {/* Quick Aspect Ratio Buttons */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Tỷ lệ khung hình</label>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={aspectRatio === 1 ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const size = Math.min(cropArea.width, cropArea.height);
+                  setCropArea(prev => ({ ...prev, width: size, height: size }));
+                }}
+              >
+                1:1 Vuông
+              </Button>
+              <Button
+                variant={aspectRatio === 16/9 ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const height = cropArea.width * 9 / 16;
+                  setCropArea(prev => ({ ...prev, height }));
+                }}
+              >
+                16:9 Ngang
+              </Button>
+              <Button
+                variant={aspectRatio === 4/3 ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const height = cropArea.width * 3 / 4;
+                  setCropArea(prev => ({ ...prev, height }));
+                }}
+              >
+                4:3 Cổ điển
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-4">
+          <Button
+            onClick={cropImage}
+            disabled={!imageLoaded || processing}
+            className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+          >
+            {processing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Đang xử lý...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                Áp dụng cắt ảnh
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={processing}
+            className="flex-1"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Hủy
+          </Button>
+        </div>
+
+        {/* Hidden canvas for processing */}
+        <canvas ref={canvasRef} className="hidden" />
+      </CardContent>
+    </Card>
+  );
+}
