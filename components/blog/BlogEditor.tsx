@@ -40,7 +40,6 @@ import {
   MAX_FILE_SIZE,
   type StorageInfo
 } from '@/lib/storage';
-import { getTitleFontClass, getContentFontClass } from '@/lib/font-utils';
 
 interface BlogEditorProps {
   post?: BlogPost;
@@ -48,16 +47,16 @@ interface BlogEditorProps {
   onCancel: () => void;
 }
 
-interface BlogFormData {
-  title: string;
-  content: string;
-  featuredImage: string;
-  customIcon: string;
-  tags: string[];
-  status: 'draft' | 'published';
-  titleFont: 'serif' | 'sans' | 'mono' | '';
-  contentFont: 'serif' | 'sans' | 'mono' | '';
-}
+const fontOptions = [
+  { value: '', label: 'Mặc định (Cormorant)', className: 'font-cormorant' },
+  { value: 'dancing-script', label: 'Dancing Script', className: 'font-dancing-script' },
+  { value: 'playwrite-vn', label: 'Playwrite Vietnam', className: 'font-playwrite-vn' },
+  { value: 'my-soul', label: 'My Soul', className: 'font-my-soul' },
+  { value: 'edu-qld', label: 'Edu QLD Hand', className: 'font-edu-qld' },
+  { value: 'amatic-sc', label: 'Amatic SC', className: 'font-amatic-sc' },
+  { value: 'vt323', label: 'VT323', className: 'font-vt323' },
+  { value: 'pinyon-script', label: 'Pinyon Script', className: 'font-pinyon-script' }
+];
 
 const iconOptions = [
   { name: 'FileText', icon: FileText, color: '#3B82F6' },
@@ -71,15 +70,15 @@ const iconOptions = [
 
 export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const [user, setUser] = useState<any>(null);
-  const [formData, setFormData] = useState<BlogFormData>({
+  const [formData, setFormData] = useState({
     title: post?.title || '',
     content: post?.content || '',
     featuredImage: post?.featuredImage || '',
     customIcon: post?.customIcon || '',
     tags: post?.tags || [],
-    status: post?.status || 'draft',
-    titleFont: (post?.titleFont as BlogFormData['titleFont']) || '',
-    contentFont: (post?.contentFont as BlogFormData['contentFont']) || ''
+    status: post?.status || 'draft' as 'draft' | 'published',
+    titleFont: post?.titleFont || '',
+    contentFont: post?.contentFont || ''
   });
   
   const [newTag, setNewTag] = useState('');
@@ -300,6 +299,11 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     return selected ? selected.icon : FileText;
   };
 
+  const getFontClass = (fontValue: string) => {
+    const font = fontOptions.find(f => f.value === fontValue);
+    return font ? font.className : 'font-cormorant';
+  };
+
   const SelectedIcon = getSelectedIcon();
 
   if (!user) {
@@ -372,7 +376,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 placeholder="Nhập tiêu đề bài viết..."
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className={`text-lg ${errors.title ? 'border-red-500' : ''}`}
+                className={`text-lg ${getFontClass(formData.titleFont)} ${errors.title ? 'border-red-500' : ''}`}
               />
               {errors.title && (
                 <p className="text-red-500 text-sm mt-1">{errors.title}</p>
@@ -391,7 +395,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 rows={15}
-                className={`resize-none font-cormorant text-base leading-relaxed ${errors.content ? 'border-red-500' : ''}`}
+                className={`resize-none text-base leading-relaxed ${getFontClass(formData.contentFont)} ${errors.content ? 'border-red-500' : ''}`}
               />
               {errors.content && (
                 <p className="text-red-500 text-sm mt-1">{errors.content}</p>
@@ -421,7 +425,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                     id="publish-status"
                     checked={formData.status === 'published'}
                     onCheckedChange={(checked) => 
-                      setFormData(prev => ({ ...prev, status: checked ? 'published' : 'draft' }));
+                      setFormData(prev => ({ ...prev, status: checked ? 'published' : 'draft' }))
                     }
                   />
                   <span className={formData.status === 'published' ? 'font-medium' : 'text-muted-foreground'}>
@@ -440,6 +444,56 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     Bài viết được lưu dưới dạng nháp
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Font Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Phông chữ</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="title-font">Font tiêu đề</Label>
+                <select
+                  id="title-font"
+                  value={formData.titleFont}
+                  onChange={(e) => setFormData(prev => ({ ...prev, titleFont: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#93E1D8] focus:border-transparent"
+                >
+                  {fontOptions.map(font => (
+                    <option key={font.value} value={font.value} className={font.className}>
+                      {font.label}
+                    </option>
+                  ))}
+                </select>
+                {formData.titleFont && (
+                  <div className={`mt-2 p-2 bg-gray-50 rounded text-sm ${getFontClass(formData.titleFont)}`}>
+                    Xem trước: Tiêu đề với font này
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="content-font">Font nội dung</Label>
+                <select
+                  id="content-font"
+                  value={formData.contentFont}
+                  onChange={(e) => setFormData(prev => ({ ...prev, contentFont: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#93E1D8] focus:border-transparent"
+                >
+                  {fontOptions.map(font => (
+                    <option key={font.value} value={font.value} className={font.className}>
+                      {font.label}
+                    </option>
+                  ))}
+                </select>
+                {formData.contentFont && (
+                  <div className={`mt-2 p-2 bg-gray-50 rounded text-sm ${getFontClass(formData.contentFont)}`}>
+                    Xem trước: Nội dung với font này sẽ hiển thị như thế này.
                   </div>
                 )}
               </div>
@@ -529,43 +583,6 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                   <span className="text-sm">Đã chọn: {formData.customIcon}</span>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Font Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Cài đặt Font chữ</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="title-font">Font chữ tiêu đề</Label>
-                <select
-                  id="title-font"
-                  value={formData.titleFont}
-                  onChange={(e) => setFormData(prev => ({ ...prev, titleFont: e.target.value as BlogFormData['titleFont'] }))}
-                  className="w-full mt-1 p-2 border rounded-md bg-transparent dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Mặc định</option>
-                  <option value="serif">Serif</option>
-                  <option value="sans">Sans-serif</option>
-                  <option value="mono">Mono</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="content-font">Font chữ nội dung</Label>
-                <select
-                  id="content-font"
-                  value={formData.contentFont}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contentFont: e.target.value as BlogFormData['contentFont'] }))}
-                  className="w-full mt-1 p-2 border rounded-md bg-transparent dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Mặc định</option>
-                  <option value="serif">Serif</option>
-                  <option value="sans">Sans-serif</option>
-                  <option value="mono">Mono</option>
-                </select>
-              </div>
             </CardContent>
           </Card>
 
@@ -666,7 +683,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 {formData.customIcon && (
                   <SelectedIcon className="h-6 w-6 text-[#93E1D8]" />
                 )}
-                <h1 className={`font-cormorant text-3xl font-light ${getTitleFontClass(formData.titleFont || undefined)}`}>
+                <h1 className={`text-3xl font-light ${getFontClass(formData.titleFont)}`}>
                   {formData.title || 'Tiêu đề bài viết'}
                 </h1>
               </div>
@@ -710,7 +727,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
             {/* Content */}
             <div className="prose prose-lg max-w-none">
               <div 
-                className={`text-gray-700 leading-relaxed space-y-6 ${getContentFontClass(formData.contentFont || undefined)}`}
+                className={`text-gray-700 leading-relaxed space-y-6 ${getFontClass(formData.contentFont)}`}
                 style={{ 
                   fontSize: '1.125rem',
                   lineHeight: '1.8'

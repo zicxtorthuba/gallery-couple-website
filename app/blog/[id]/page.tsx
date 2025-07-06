@@ -25,7 +25,6 @@ import {
   Palette
 } from 'lucide-react';
 import { BlogPost, getBlogPost, getBlogPosts } from '@/lib/blog-supabase';
-import { getTitleFontClass, getContentFontClass } from '@/lib/font-utils';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CommentSection } from '@/components/ui/comment-section';
@@ -34,6 +33,22 @@ import { getCurrentUser } from '@/lib/auth';
 
 const iconMap: Record<string, any> = {
   FileText, Calendar, Clock, User, Tag, Eye, Palette
+};
+
+const fontOptions = [
+  { value: '', className: 'font-cormorant' },
+  { value: 'dancing-script', className: 'font-dancing-script' },
+  { value: 'playwrite-vn', className: 'font-playwrite-vn' },
+  { value: 'my-soul', className: 'font-my-soul' },
+  { value: 'edu-qld', className: 'font-edu-qld' },
+  { value: 'amatic-sc', className: 'font-amatic-sc' },
+  { value: 'vt323', className: 'font-vt323' },
+  { value: 'pinyon-script', className: 'font-pinyon-script' }
+];
+
+const getFontClass = (fontValue?: string) => {
+  const font = fontOptions.find(f => f.value === fontValue);
+  return font ? font.className : 'font-cormorant';
 };
 
 export default function BlogPostPage() {
@@ -194,7 +209,7 @@ export default function BlogPostPage() {
               {post.customIcon && (
                 <PostIcon className="h-8 w-8 text-[#93E1D8]" />
               )}
-              <h1 className={`text-4xl md:text-5xl font-light leading-tight ${getTitleFontClass(post.titleFont)}`}>
+              <h1 className={`text-4xl md:text-5xl font-light leading-tight ${getFontClass(post.titleFont)}`}>
                 {post.title}
               </h1>
             </div>
@@ -279,7 +294,7 @@ export default function BlogPostPage() {
           {/* Content */}
           <article className="prose prose-lg max-w-none">
             <div 
-              className={`text-gray-700 leading-relaxed space-y-6 ${getContentFontClass(post.contentFont)}`}
+              className={`text-gray-700 leading-relaxed space-y-6 ${getFontClass(post.contentFont)}`}
               style={{ 
                 fontSize: '1.125rem',
                 lineHeight: '1.8'

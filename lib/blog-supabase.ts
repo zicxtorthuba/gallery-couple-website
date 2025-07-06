@@ -8,8 +8,8 @@ export interface BlogPost {
   excerpt: string;
   featuredImage?: string;
   customIcon?: string;
-  titleFont?: 'serif' | 'sans' | 'mono';
-  contentFont?: 'serif' | 'sans' | 'mono';
+  titleFont?: string;
+  contentFont?: string;
   author: string;
   authorId: string;
   authorAvatar: string;
