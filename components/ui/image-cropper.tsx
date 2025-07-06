@@ -2,26 +2,19 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
+  Crop, 
   RotateCcw, 
   Check, 
-  X, 
-  Crop,
+  X,
+  Move,
   Square,
-  Maximize,
-  Monitor,
-  Smartphone
+  Maximize
 } from 'lucide-react';
-
-interface ImageCropperProps {
-  imageUrl: string;
-  onCropComplete: (croppedImageUrl: string) => void;
-  onCancel: () => void;
-  aspectRatios?: { label: string; value: number | null; icon?: any }[];
-}
 
 interface CropArea {
   x: number;
@@ -30,389 +23,452 @@ interface CropArea {
   height: number;
 }
 
-export function ImageCropper({ 
-  imageUrl, 
-  onCropComplete, 
-  onCancel,
-  aspectRatios = [
-    { label: 'Tự do', value: null, icon: Crop },
-    { label: 'Vuông (1:1)', value: 1, icon: Square },
-    { label: 'Ngang (16:9)', value: 16/9, icon: Monitor },
-    { label: 'Dọc (9:16)', value: 9/16, icon: Smartphone },
-    { label: 'Ngang (4:3)', value: 4/3, icon: Maximize },
-    { label: 'Dọc (3:4)', value: 3/4, icon: Maximize }
-  ]
-}: ImageCropperProps) {
+interface ImageCropperProps {
+  imageUrl: string;
+  onCrop: (croppedImageUrl: string) => void;
+  onCancel: () => void;
+  aspectRatio?: number | null; // null for free form
+}
+
+const ASPECT_RATIOS = [
+  { label: 'Tự do', value: null },
+  { label: '1:1', value: 1 },
+  { label: '16:9', value: 16/9 },
+  { label: '4:3', value: 4/3 },
+  { label: '9:16', value: 9/16 },
+  { label: '3:4', value: 3/4 },
+];
+
+export function ImageCropper({ imageUrl, onCrop, onCancel, aspectRatio: initialAspectRatio }: ImageCropperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
   const [isLoaded, setIsLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number | null>(null);
-  const [cropArea, setCropArea] = useState<CropArea>({ x: 50, y: 50, width: 200, height: 200 });
-  const [imageScale, setImageScale] = useState(1);
-  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
-  const [canvasSize, setCanvasSize] = useState({ width: 600, height: 400 });
+  const [aspectRatio, setAspectRatio] = useState<number | null>(initialAspectRatio || null);
+  const [imageData, setImageData] = useState<{
+    img: HTMLImageElement;
+    scale: number;
+    offsetX: number;
+    offsetY: number;
+  } | null>(null);
+  
+  const [cropArea, setCropArea] = useState<CropArea>({
+    x: 50,
+    y: 50,
+    width: 200,
+    height: 200
+  });
+
+  const [cropControls, setCropControls] = useState({
+    width: 200,
+    height: 200
+  });
 
   // Load and setup image
   useEffect(() => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
+    
     img.onload = () => {
-      if (imageRef.current) {
-        imageRef.current = img;
-        setIsLoaded(true);
-        
-        // Calculate initial canvas size and image scale
-        const containerWidth = containerRef.current?.clientWidth || 600;
-        const maxWidth = Math.min(containerWidth - 40, 800);
-        const maxHeight = 500;
-        
-        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-        const scaledWidth = img.width * scale;
-        const scaledHeight = img.height * scale;
-        
-        setCanvasSize({ width: scaledWidth, height: scaledHeight });
-        setImageScale(scale);
-        
-        // Center initial crop area
-        const initialCropSize = Math.min(scaledWidth, scaledHeight) * 0.6;
-        setCropArea({
-          x: (scaledWidth - initialCropSize) / 2,
-          y: (scaledHeight - initialCropSize) / 2,
-          width: initialCropSize,
-          height: initialCropSize
-        });
-        
-        drawCanvas();
-      }
+      setIsLoaded(true);
+      
+      // Calculate initial canvas size and image scale
+      const container = containerRef.current;
+      if (!container) return;
+      
+      const containerWidth = container.clientWidth;
+      const containerHeight = 400; // Fixed height for canvas
+      
+      const scale = Math.min(
+        containerWidth / img.width,
+        containerHeight / img.height,
+        1 // Don't scale up
+      );
+      
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const offsetX = (containerWidth - scaledWidth) / 2;
+      const offsetY = (containerHeight - scaledHeight) / 2;
+      
+      setImageData({
+        img,
+        scale,
+        offsetX,
+        offsetY
+      });
+      
+      // Set initial crop area
+      const initialCropSize = Math.min(scaledWidth, scaledHeight) * 0.6;
+      const initialCrop = {
+        x: offsetX + (scaledWidth - initialCropSize) / 2,
+        y: offsetY + (scaledHeight - initialCropSize) / 2,
+        width: initialCropSize,
+        height: aspectRatio ? initialCropSize / aspectRatio : initialCropSize
+      };
+      
+      setCropArea(initialCrop);
+      setCropControls({
+        width: initialCrop.width,
+        height: initialCrop.height
+      });
     };
+    
+    img.onerror = () => {
+      console.error('Failed to load image');
+    };
+    
     img.src = imageUrl;
-    imageRef.current = img;
-  }, [imageUrl]);
+  }, [imageUrl, aspectRatio]);
 
-  // Redraw canvas when crop area or aspect ratio changes
-  useEffect(() => {
-    if (isLoaded) {
-      drawCanvas();
-    }
-  }, [cropArea, selectedAspectRatio, isLoaded]);
-
+  // Draw canvas
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    const img = imageRef.current;
-    if (!canvas || !img) return;
-
+    if (!canvas || !imageData) return;
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    canvas.width = canvasSize.width;
-    canvas.height = canvasSize.height;
-
+    
+    const { img, scale, offsetX, offsetY } = imageData;
+    
+    // Set canvas size
+    canvas.width = containerRef.current?.clientWidth || 600;
+    canvas.height = 400;
+    
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    
     // Draw image
-    ctx.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
-
-    // Draw overlay (darken non-crop area)
+    ctx.drawImage(
+      img,
+      offsetX,
+      offsetY,
+      img.width * scale,
+      img.height * scale
+    );
+    
+    // Draw crop overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+    
     // Clear crop area
     ctx.globalCompositeOperation = 'destination-out';
     ctx.fillRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
-
+    
     // Draw crop border
     ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = '#93E1D8';
     ctx.lineWidth = 2;
     ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
-
-    // Draw corner handles
-    const handleSize = 8;
-    ctx.fillStyle = '#93E1D8';
-    const corners = [
-      { x: cropArea.x - handleSize/2, y: cropArea.y - handleSize/2 },
-      { x: cropArea.x + cropArea.width - handleSize/2, y: cropArea.y - handleSize/2 },
-      { x: cropArea.x - handleSize/2, y: cropArea.y + cropArea.height - handleSize/2 },
-      { x: cropArea.x + cropArea.width - handleSize/2, y: cropArea.y + cropArea.height - handleSize/2 }
-    ];
     
-    corners.forEach(corner => {
-      ctx.fillRect(corner.x, corner.y, handleSize, handleSize);
-    });
-
     // Draw grid lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.strokeStyle = 'rgba(147, 225, 216, 0.5)';
     ctx.lineWidth = 1;
+    
+    // Vertical lines
     for (let i = 1; i < 3; i++) {
       const x = cropArea.x + (cropArea.width / 3) * i;
-      const y = cropArea.y + (cropArea.height / 3) * i;
-      
       ctx.beginPath();
       ctx.moveTo(x, cropArea.y);
       ctx.lineTo(x, cropArea.y + cropArea.height);
       ctx.stroke();
-      
+    }
+    
+    // Horizontal lines
+    for (let i = 1; i < 3; i++) {
+      const y = cropArea.y + (cropArea.height / 3) * i;
       ctx.beginPath();
       ctx.moveTo(cropArea.x, y);
       ctx.lineTo(cropArea.x + cropArea.width, y);
       ctx.stroke();
     }
-  }, [cropArea, canvasSize]);
+    
+    // Draw corner handles
+    const handleSize = 8;
+    ctx.fillStyle = '#93E1D8';
+    
+    // Top-left
+    ctx.fillRect(cropArea.x - handleSize/2, cropArea.y - handleSize/2, handleSize, handleSize);
+    // Top-right
+    ctx.fillRect(cropArea.x + cropArea.width - handleSize/2, cropArea.y - handleSize/2, handleSize, handleSize);
+    // Bottom-left
+    ctx.fillRect(cropArea.x - handleSize/2, cropArea.y + cropArea.height - handleSize/2, handleSize, handleSize);
+    // Bottom-right
+    ctx.fillRect(cropArea.x + cropArea.width - handleSize/2, cropArea.y + cropArea.height - handleSize/2, handleSize, handleSize);
+  }, [imageData, cropArea]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Redraw when crop area changes
+  useEffect(() => {
+    if (isLoaded) {
+      drawCanvas();
+    }
+  }, [isLoaded, drawCanvas]);
+
+  // Handle mouse events
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
+    
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
-    setIsDragging(true);
-    setDragStart({ x, y });
+    
+    // Check if click is inside crop area
+    if (
+      x >= cropArea.x && 
+      x <= cropArea.x + cropArea.width &&
+      y >= cropArea.y && 
+      y <= cropArea.y + cropArea.height
+    ) {
+      setIsDragging(true);
+      setDragStart({ x: x - cropArea.x, y: y - cropArea.y });
+    }
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDragging) return;
-
+    
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
+    if (!canvas || !imageData) return;
+    
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
-    const deltaX = x - dragStart.x;
-    const deltaY = y - dragStart.y;
-
-    setCropArea(prev => {
-      let newX = Math.max(0, Math.min(prev.x + deltaX, canvasSize.width - prev.width));
-      let newY = Math.max(0, Math.min(prev.y + deltaY, canvasSize.height - prev.height));
-      
-      return {
-        ...prev,
-        x: newX,
-        y: newY
-      };
-    });
-
-    setDragStart({ x, y });
+    
+    const newX = Math.max(imageData.offsetX, Math.min(x - dragStart.x, imageData.offsetX + imageData.img.width * imageData.scale - cropArea.width));
+    const newY = Math.max(imageData.offsetY, Math.min(y - dragStart.y, imageData.offsetY + imageData.img.height * imageData.scale - cropArea.height));
+    
+    setCropArea(prev => ({
+      ...prev,
+      x: newX,
+      y: newY
+    }));
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
   };
 
-  const handleAspectRatioChange = (ratio: number | null) => {
-    setSelectedAspectRatio(ratio);
+  // Handle crop controls
+  const handleWidthChange = (value: number[]) => {
+    const newWidth = value[0];
+    let newHeight = aspectRatio ? newWidth / aspectRatio : cropControls.height;
     
-    if (ratio) {
-      setCropArea(prev => {
-        const centerX = prev.x + prev.width / 2;
-        const centerY = prev.y + prev.height / 2;
-        
-        let newWidth = prev.width;
-        let newHeight = prev.width / ratio;
-        
-        // Adjust if height exceeds canvas
-        if (newHeight > canvasSize.height) {
-          newHeight = canvasSize.height * 0.8;
-          newWidth = newHeight * ratio;
+    if (imageData) {
+      const maxWidth = imageData.img.width * imageData.scale;
+      const maxHeight = imageData.img.height * imageData.scale;
+      
+      if (newWidth > maxWidth) return;
+      if (newHeight > maxHeight) {
+        newHeight = maxHeight;
+        if (aspectRatio) {
+          return; // Can't maintain aspect ratio
         }
-        
-        // Adjust if width exceeds canvas
-        if (newWidth > canvasSize.width) {
-          newWidth = canvasSize.width * 0.8;
-          newHeight = newWidth / ratio;
-        }
-        
-        return {
-          x: Math.max(0, Math.min(centerX - newWidth / 2, canvasSize.width - newWidth)),
-          y: Math.max(0, Math.min(centerY - newHeight / 2, canvasSize.height - newHeight)),
-          width: newWidth,
-          height: newHeight
-        };
-      });
+      }
+    }
+    
+    setCropControls({ width: newWidth, height: newHeight });
+    setCropArea(prev => ({
+      ...prev,
+      width: newWidth,
+      height: newHeight
+    }));
+  };
+
+  const handleHeightChange = (value: number[]) => {
+    if (aspectRatio) return; // Height is controlled by aspect ratio
+    
+    const newHeight = value[0];
+    
+    if (imageData) {
+      const maxHeight = imageData.img.height * imageData.scale;
+      if (newHeight > maxHeight) return;
+    }
+    
+    setCropControls(prev => ({ ...prev, height: newHeight }));
+    setCropArea(prev => ({
+      ...prev,
+      height: newHeight
+    }));
+  };
+
+  const handleAspectRatioChange = (newRatio: number | null) => {
+    setAspectRatio(newRatio);
+    
+    if (newRatio) {
+      const newHeight = cropControls.width / newRatio;
+      setCropControls(prev => ({ ...prev, height: newHeight }));
+      setCropArea(prev => ({
+        ...prev,
+        height: newHeight
+      }));
     }
   };
 
-  const handleCropSizeChange = (dimension: 'width' | 'height', value: number) => {
-    setCropArea(prev => {
-      const maxSize = dimension === 'width' ? canvasSize.width : canvasSize.height;
-      const newValue = Math.max(50, Math.min(value, maxSize));
-      
-      if (selectedAspectRatio) {
-        if (dimension === 'width') {
-          const newHeight = newValue / selectedAspectRatio;
-          return {
-            ...prev,
-            width: newValue,
-            height: Math.min(newHeight, canvasSize.height),
-            x: Math.max(0, Math.min(prev.x, canvasSize.width - newValue)),
-            y: Math.max(0, Math.min(prev.y, canvasSize.height - newHeight))
-          };
-        } else {
-          const newWidth = newValue * selectedAspectRatio;
-          return {
-            ...prev,
-            width: Math.min(newWidth, canvasSize.width),
-            height: newValue,
-            x: Math.max(0, Math.min(prev.x, canvasSize.width - newWidth)),
-            y: Math.max(0, Math.min(prev.y, canvasSize.height - newValue))
-          };
-        }
-      } else {
-        return {
-          ...prev,
-          [dimension]: newValue,
-          x: dimension === 'width' ? Math.max(0, Math.min(prev.x, canvasSize.width - newValue)) : prev.x,
-          y: dimension === 'height' ? Math.max(0, Math.min(prev.y, canvasSize.height - newValue)) : prev.y
-        };
-      }
-    });
-  };
-
-  const resetCrop = () => {
-    const initialCropSize = Math.min(canvasSize.width, canvasSize.height) * 0.6;
-    setCropArea({
-      x: (canvasSize.width - initialCropSize) / 2,
-      y: (canvasSize.height - initialCropSize) / 2,
+  const handleReset = () => {
+    if (!imageData) return;
+    
+    const initialCropSize = Math.min(
+      imageData.img.width * imageData.scale,
+      imageData.img.height * imageData.scale
+    ) * 0.6;
+    
+    const initialCrop = {
+      x: imageData.offsetX + (imageData.img.width * imageData.scale - initialCropSize) / 2,
+      y: imageData.offsetY + (imageData.img.height * imageData.scale - initialCropSize) / 2,
       width: initialCropSize,
-      height: initialCropSize
+      height: aspectRatio ? initialCropSize / aspectRatio : initialCropSize
+    };
+    
+    setCropArea(initialCrop);
+    setCropControls({
+      width: initialCrop.width,
+      height: initialCrop.height
     });
-    setSelectedAspectRatio(null);
   };
 
-  const applyCrop = async () => {
-    const img = imageRef.current;
-    if (!img) return;
-
-    // Create a new canvas for the cropped image
+  const handleCrop = async () => {
+    if (!imageData) return;
+    
+    const { img, scale, offsetX, offsetY } = imageData;
+    
+    // Calculate crop coordinates relative to original image
+    const cropX = (cropArea.x - offsetX) / scale;
+    const cropY = (cropArea.y - offsetY) / scale;
+    const cropWidth = cropArea.width / scale;
+    const cropHeight = cropArea.height / scale;
+    
+    // Create canvas for cropped image
     const cropCanvas = document.createElement('canvas');
     const cropCtx = cropCanvas.getContext('2d');
     if (!cropCtx) return;
-
-    // Calculate the actual crop coordinates on the original image
-    const scaleX = img.width / canvasSize.width;
-    const scaleY = img.height / canvasSize.height;
     
-    const actualCrop = {
-      x: cropArea.x * scaleX,
-      y: cropArea.y * scaleY,
-      width: cropArea.width * scaleX,
-      height: cropArea.height * scaleY
-    };
-
-    cropCanvas.width = actualCrop.width;
-    cropCanvas.height = actualCrop.height;
-
-    // Draw the cropped portion
+    cropCanvas.width = cropWidth;
+    cropCanvas.height = cropHeight;
+    
+    // Draw cropped portion
     cropCtx.drawImage(
       img,
-      actualCrop.x, actualCrop.y, actualCrop.width, actualCrop.height,
-      0, 0, actualCrop.width, actualCrop.height
+      cropX, cropY, cropWidth, cropHeight,
+      0, 0, cropWidth, cropHeight
     );
-
+    
     // Convert to blob and create URL
     cropCanvas.toBlob((blob) => {
       if (blob) {
         const croppedUrl = URL.createObjectURL(blob);
-        onCropComplete(croppedUrl);
+        onCrop(croppedUrl);
       }
     }, 'image/jpeg', 0.9);
   };
 
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Aspect Ratio Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Tỷ lệ khung hình</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {aspectRatios.map((ratio) => {
-              const IconComponent = ratio.icon || Crop;
-              return (
+      {/* Canvas */}
+      <div ref={containerRef} className="relative border rounded-lg overflow-hidden bg-gray-100">
+        <canvas
+          ref={canvasRef}
+          className="w-full cursor-move"
+          style={{ height: '400px' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        />
+      </div>
+
+      {/* Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Aspect Ratio */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Square className="h-5 w-5" />
+              Tỷ lệ khung hình
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              {ASPECT_RATIOS.map((ratio) => (
                 <Button
                   key={ratio.label}
-                  variant={selectedAspectRatio === ratio.value ? "default" : "outline"}
+                  variant={aspectRatio === ratio.value ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleAspectRatioChange(ratio.value)}
-                  className="flex items-center gap-2"
+                  className="text-xs"
                 >
-                  <IconComponent className="h-4 w-4" />
                   {ratio.label}
                 </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Crop Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Điều chỉnh vùng cắt</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        {/* Size Controls */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Maximize className="h-5 w-5" />
+              Kích thước
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <Label>Chiều rộng: {Math.round(cropArea.width)}px</Label>
+              <Label>Chiều rộng: {Math.round(cropControls.width)}px</Label>
               <Slider
-                value={[cropArea.width]}
-                onValueChange={([value]) => handleCropSizeChange('width', value)}
-                max={canvasSize.width}
+                value={[cropControls.width]}
+                onValueChange={handleWidthChange}
                 min={50}
+                max={imageData ? imageData.img.width * imageData.scale : 400}
                 step={1}
                 className="mt-2"
               />
             </div>
-            <div>
-              <Label>Chiều cao: {Math.round(cropArea.height)}px</Label>
-              <Slider
-                value={[cropArea.height]}
-                onValueChange={([value]) => handleCropSizeChange('height', value)}
-                max={canvasSize.height}
-                min={50}
-                step={1}
-                className="mt-2"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            
+            {!aspectRatio && (
+              <div>
+                <Label>Chiều cao: {Math.round(cropControls.height)}px</Label>
+                <Slider
+                  value={[cropControls.height]}
+                  onValueChange={handleHeightChange}
+                  min={50}
+                  max={imageData ? imageData.img.height * imageData.scale : 400}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Canvas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Xem trước</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div ref={containerRef} className="flex justify-center">
-            <canvas
-              ref={canvasRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              className="border border-gray-300 rounded-lg cursor-move"
-              style={{ maxWidth: '100%', height: 'auto' }}
-            />
+      {/* Instructions */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Move className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-blue-900 mb-1">Hướng dẫn sử dụng:</h4>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• Kéo vùng cắt để di chuyển vị trí</li>
+              <li>• Sử dụng thanh trượt để thay đổi kích thước</li>
+              <li>• Chọn tỷ lệ khung hình hoặc để tự do</li>
+              <li>• Đường lưới giúp căn chỉnh chính xác</li>
+            </ul>
           </div>
-          <p className="text-sm text-muted-foreground mt-2 text-center">
-            Kéo để di chuyển vùng cắt. Sử dụng thanh trượt để điều chỉnh kích thước.
-          </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Action Buttons */}
       <div className="flex gap-3 justify-end">
-        <Button variant="outline" onClick={resetCrop}>
+        <Button variant="outline" onClick={handleReset}>
           <RotateCcw className="h-4 w-4 mr-2" />
           Đặt lại
         </Button>
@@ -420,7 +476,7 @@ export function ImageCropper({
           <X className="h-4 w-4 mr-2" />
           Hủy
         </Button>
-        <Button onClick={applyCrop} className="bg-[#93E1D8] hover:bg-[#93E1D8]/90">
+        <Button onClick={handleCrop} className="bg-[#93E1D8] hover:bg-[#93E1D8]/90">
           <Check className="h-4 w-4 mr-2" />
           Áp dụng
         </Button>
