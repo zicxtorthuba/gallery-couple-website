@@ -11,10 +11,9 @@ import {
   Send, 
   Edit3, 
   Trash2, 
-  Save, 
-  X,
-  AlertTriangle,
-  CheckCircle
+  User,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { getCurrentUser, type AuthUser } from '@/lib/auth';
 import {
@@ -26,12 +25,14 @@ import {
   updateGalleryComment,
   deleteBlogComment,
   deleteGalleryComment,
-  type Comment
+  type Comment,
+  type BlogComment,
+  type GalleryComment
 } from '@/lib/favorites-supabase';
 
 interface CommentSectionProps {
   itemId: string;
-  itemType: 'blog' | 'gallery';
+  itemType: 'gallery' | 'blog';
   className?: string;
 }
 
@@ -41,12 +42,13 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    loadUser();
     loadComments();
+    loadUser();
   }, [itemId, itemType]);
 
   const loadUser = async () => {
@@ -56,6 +58,7 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
 
   const loadComments = async () => {
     try {
+      setLoading(true);
       let commentsData: Comment[] = [];
       
       if (itemType === 'blog') {
@@ -67,14 +70,18 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
       setComments(commentsData);
     } catch (error) {
       console.error('Error loading comments:', error);
+      setMessage('Có lỗi xảy ra khi tải bình luận');
+      setTimeout(() => setMessage(''), 3000);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSubmitComment = async () => {
-    if (!user || !newComment.trim() || loading) return;
+    if (!newComment.trim() || !user || submitting) return;
 
     try {
-      setLoading(true);
+      setSubmitting(true);
       let newCommentData: Comment | null = null;
 
       if (itemType === 'blog') {
@@ -93,11 +100,11 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
         setTimeout(() => setMessage(''), 3000);
       }
     } catch (error) {
-      console.error('Error creating comment:', error);
+      console.error('Error submitting comment:', error);
       setMessage('Có lỗi xảy ra khi thêm bình luận');
       setTimeout(() => setMessage(''), 3000);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -107,12 +114,11 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
   };
 
   const handleSaveEdit = async () => {
-    if (!editingComment || !editContent.trim() || loading) return;
+    if (!editContent.trim() || !editingComment) return;
 
     try {
-      setLoading(true);
       let success = false;
-
+      
       if (itemType === 'blog') {
         success = await updateBlogComment(editingComment, editContent);
       } else {
@@ -137,18 +143,13 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
       console.error('Error updating comment:', error);
       setMessage('Có lỗi xảy ra khi cập nhật bình luận');
       setTimeout(() => setMessage(''), 3000);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!user || loading) return;
-
     try {
-      setLoading(true);
       let success = false;
-
+      
       if (itemType === 'blog') {
         success = await deleteBlogComment(commentId);
       } else {
@@ -167,14 +168,7 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
       console.error('Error deleting comment:', error);
       setMessage('Có lỗi xảy ra khi xóa bình luận');
       setTimeout(() => setMessage(''), 3000);
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const cancelEdit = () => {
-    setEditingComment(null);
-    setEditContent('');
   };
 
   return (
@@ -193,7 +187,7 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
         </Alert>
       )}
 
-      {/* Comments Header */}
+      {/* Header */}
       <div className="flex items-center gap-2">
         <MessageCircle className="h-5 w-5 text-[#93E1D8]" />
         <h3 className="font-cormorant text-xl font-light">
@@ -201,7 +195,7 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
         </h3>
       </div>
 
-      {/* Add Comment Form */}
+      {/* Add Comment */}
       {user ? (
         <Card>
           <CardContent className="p-4">
@@ -223,12 +217,11 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
                 <div className="flex justify-end">
                   <Button
                     onClick={handleSubmitComment}
-                    disabled={!newComment.trim() || loading}
+                    disabled={!newComment.trim() || submitting}
                     className="bg-[#93E1D8] hover:bg-[#93E1D8]/90"
-                    size="sm"
                   >
-                    <Send className="h-3 w-3 mr-2" />
-                    {loading ? 'Đang gửi...' : 'Gửi bình luận'}
+                    <Send className="h-4 w-4 mr-2" />
+                    {submitting ? 'Đang gửi...' : 'Gửi bình luận'}
                   </Button>
                 </div>
               </div>
@@ -238,8 +231,9 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
       ) : (
         <Card>
           <CardContent className="p-4 text-center">
+            <User className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-muted-foreground">
-              Bạn cần đăng nhập để có thể bình luận
+              Đăng nhập để viết bình luận
             </p>
           </CardContent>
         </Card>
@@ -247,7 +241,11 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
 
       {/* Comments List */}
       <div className="space-y-4">
-        {comments.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#93E1D8] mx-auto"></div>
+          </div>
+        ) : comments.length > 0 ? (
           comments.map((comment) => (
             <Card key={comment.id}>
               <CardContent className="p-4">
@@ -261,8 +259,8 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <span className="font-medium text-sm">{comment.userName}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
+                        <p className="font-medium text-sm">{comment.userName}</p>
+                        <p className="text-xs text-muted-foreground">
                           {new Date(comment.createdAt).toLocaleDateString('vi-VN', {
                             year: 'numeric',
                             month: 'short',
@@ -271,62 +269,61 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
                             minute: '2-digit'
                           })}
                           {comment.updatedAt !== comment.createdAt && ' (đã chỉnh sửa)'}
-                        </span>
+                        </p>
                       </div>
                       {user && user.id === comment.userId && (
                         <div className="flex gap-1">
-                          {editingComment === comment.id ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleSaveEdit}
-                                disabled={!editContent.trim() || loading}
-                              >
-                                <Save className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={cancelEdit}
-                                disabled={loading}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditComment(comment)}
-                                disabled={loading}
-                              >
-                                <Edit3 className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDeleteComment(comment.id)}
-                                className="text-red-500 hover:bg-red-50"
-                                disabled={loading}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </>
-                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditComment(comment)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="h-6 w-6 p-0 text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       )}
                     </div>
+                    
                     {editingComment === comment.id ? (
-                      <Textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          rows={3}
+                          className="resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={handleSaveEdit}
+                            disabled={!editContent.trim()}
+                            className="bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+                          >
+                            Lưu
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingComment(null);
+                              setEditContent('');
+                            }}
+                          >
+                            Hủy
+                          </Button>
+                        </div>
+                      </div>
                     ) : (
-                      <p className="text-sm text-gray-700 leading-relaxed">
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
                         {comment.content}
                       </p>
                     )}
@@ -336,14 +333,12 @@ export function CommentSection({ itemId, itemType, className = '' }: CommentSect
             </Card>
           ))
         ) : (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                Chưa có bình luận nào. Hãy là người đầu tiên bình luận!
-              </p>
-            </CardContent>
-          </Card>
+          <div className="text-center py-8">
+            <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+            <p className="text-muted-foreground">
+              Chưa có bình luận nào. Hãy là người đầu tiên bình luận!
+            </p>
+          </div>
         )}
       </div>
     </div>
