@@ -57,11 +57,10 @@ export function BlogPreview() {
   }
 
   return (
-    <section className="py-24" style={{ backgroundColor: '#FFA69E' }}>
+    <section className="py-24 bg-white">
       <div className="container mx-auto px-4">
-        <div className="content-container rounded-3xl p-8 shadow-lg">
         <div className="text-center mb-16">
-          <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4 text-gray-800">Blog</h2>
+          <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Blog</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Lời khuyên, những bức thư và những câu chuyện tâm sự
           </p>
@@ -75,7 +74,7 @@ export function BlogPreview() {
                 const IconComponent = getPostIcon(post.customIcon);
                 return (
                   <Link key={post.id} href={`/blog/${post.id}`} className="group">
-                    <article className="card-soft rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100">
+                    <article className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100">
                       {/* Featured Image or Icon */}
                       {post.featuredImage ? (
                         <div className="relative h-48 overflow-hidden">
@@ -152,7 +151,7 @@ export function BlogPreview() {
             {/* View All Button */}
             <div className="text-center">
               <Link href="/blog">
-                <Button variant="outline" className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8] hover:text-white px-8 py-3 rounded-full transition-all duration-300">
+                <Button variant="outline" className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 px-8 py-3 rounded-full">
                   <BookOpenIcon className="h-4 w-4 mr-2" />
                   Xem tất cả bài viết
                 </Button>
@@ -181,7 +180,6 @@ export function BlogPreview() {
             </div>
           </div>
         )}
-        </div>
       </div>
     </section>
   );

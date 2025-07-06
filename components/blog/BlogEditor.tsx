@@ -376,7 +376,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 placeholder="Nhập tiêu đề bài viết..."
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className={`text-lg form-element ${getFontClass(formData.titleFont)} ${errors.title ? 'border-red-500' : ''}`}
+                className={`text-lg ${getFontClass(formData.titleFont)} ${errors.title ? 'border-red-500' : ''}`}
               />
               {errors.title && (
                 <p className="text-red-500 text-sm mt-1">{errors.title}</p>
@@ -395,7 +395,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 rows={15}
-                className={`resize-none text-base leading-relaxed form-element ${getFontClass(formData.contentFont)} ${errors.content ? 'border-red-500' : ''}`}
+                className={`resize-none text-base leading-relaxed ${getFontClass(formData.contentFont)} ${errors.content ? 'border-red-500' : ''}`}
               />
               {errors.content && (
                 <p className="text-red-500 text-sm mt-1">{errors.content}</p>
@@ -462,7 +462,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                   id="title-font"
                   value={formData.titleFont}
                   onChange={(e) => setFormData(prev => ({ ...prev, titleFont: e.target.value }))}
-                  className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#93E1D8] focus:border-transparent form-element"
+                  className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#93E1D8] focus:border-transparent"
                 >
                   {fontOptions.map(font => (
                     <option key={font.value} value={font.value} className={font.className}>
@@ -483,7 +483,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                   id="content-font"
                   value={formData.contentFont}
                   onChange={(e) => setFormData(prev => ({ ...prev, contentFont: e.target.value }))}
-                  className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#93E1D8] focus:border-transparent form-element"
+                  className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#93E1D8] focus:border-transparent"
                 >
                   {fontOptions.map(font => (
                     <option key={font.value} value={font.value} className={font.className}>
@@ -615,7 +615,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                    className="flex-1 form-element"
+                    className="flex-1"
                   />
                   <input
                     type="color"
@@ -668,7 +668,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
 
       {/* Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-md">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />

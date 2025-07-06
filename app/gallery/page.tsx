@@ -475,10 +475,9 @@ function GalleryContent() {
   const categoriesWithAll = ['all', ...categories];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FFA69E' }}>
+    <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4">
-          <div className="content-container rounded-3xl p-8 shadow-lg">
           {/* Storage Indicator */}
           <StorageIndicator 
             className="mb-6"
@@ -501,7 +500,7 @@ function GalleryContent() {
 
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4 text-gray-800">
+            <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4">
               Thư viện ảnh
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -521,7 +520,7 @@ function GalleryContent() {
                   {storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh lên'}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md bg-white/95 backdrop-blur-md">
+              <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle className="font-cormorant text-2xl font-light">
                     Tải ảnh lên
@@ -543,7 +542,7 @@ function GalleryContent() {
                       type="file"
                       accept="image/*"
                       onChange={handleFileSelect}
-                      className="mt-1 form-element"
+                      className="mt-1"
                     />
                     {uploadData.file && (
                       <p className="text-sm text-muted-foreground mt-1">
@@ -561,7 +560,7 @@ function GalleryContent() {
                         title: e.target.value 
                       }))}
                       placeholder="Nhập tiêu đề ảnh"
-                      className="mt-1 form-element"
+                      className="mt-1"
                     />
                   </div>
                   <div>
@@ -574,7 +573,7 @@ function GalleryContent() {
                         description: e.target.value 
                       }))}
                       placeholder="Mô tả về bức ảnh..."
-                      className="mt-1 form-element"
+                      className="mt-1"
                       rows={3}
                     />
                   </div>
@@ -587,10 +586,10 @@ function GalleryContent() {
                         category: value 
                       }))}
                     >
-                      <SelectTrigger className="mt-1 form-element">
+                      <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Chọn danh mục" />
                       </SelectTrigger>
-                      <SelectContent className="bg-white/95 backdrop-blur-md">
+                      <SelectContent>
                         <SelectItem value="couples">Couples</SelectItem>
                         <SelectItem value="nature">Nature</SelectItem>
                         <SelectItem value="urban">Urban</SelectItem>
@@ -610,7 +609,7 @@ function GalleryContent() {
                         tags: e.target.value 
                       }))}
                       placeholder="ví dụ: sunset, romance, outdoor"
-                      className="mt-1 form-element"
+                      className="mt-1"
                     />
                   </div>
                   <div className="flex gap-2 pt-4">
@@ -645,15 +644,15 @@ function GalleryContent() {
                   placeholder="Tìm kiếm theo tiêu đề, mô tả hoặc thẻ..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 form-element"
+                  className="pl-10"
                 />
               </div>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full md:w-48 form-element">
+                <SelectTrigger className="w-full md:w-48">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Chọn danh mục" />
                 </SelectTrigger>
-                <SelectContent className="bg-white/95 backdrop-blur-md">
+                <SelectContent>
                   {categoriesWithAll.map(category => (
                     <SelectItem key={category} value={category}>
                       {category === 'all' ? 'Tất cả' : category}
@@ -713,7 +712,7 @@ function GalleryContent() {
               {filteredImages.map((image) => (
                 <div
                   key={image.id}
-                  className="card-soft rounded-xl shadow-sm overflow-hidden group hover:shadow-lg transition-all duration-300"
+                  className="bg-white rounded-xl shadow-sm overflow-hidden group hover:shadow-lg transition-all duration-300"
                 >
                   <div className="relative aspect-square overflow-hidden">
                     <Image
@@ -877,13 +876,12 @@ function GalleryContent() {
               </div>
             </div>
           )}
-          </div>
         </div>
       </div>
 
       {/* Image Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-white/95 backdrop-blur-md">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
           {selectedImage && (
             <>
               <DialogHeader>
@@ -983,7 +981,7 @@ function GalleryContent() {
 
       {/* Edit Modal */}
       <Dialog open={!!editingImage} onOpenChange={() => setEditingImage(null)}>
-        <DialogContent className="max-w-md bg-white/95 backdrop-blur-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-cormorant text-2xl font-light">
               Chỉnh sửa ảnh
@@ -999,7 +997,7 @@ function GalleryContent() {
                   ...prev, 
                   title: e.target.value 
                 }))}
-                className="mt-1 form-element"
+                className="mt-1"
               />
             </div>
             <div>
@@ -1011,7 +1009,7 @@ function GalleryContent() {
                   ...prev, 
                   description: e.target.value 
                 }))}
-                className="mt-1 form-element"
+                className="mt-1"
                 rows={3}
               />
             </div>
@@ -1024,7 +1022,7 @@ function GalleryContent() {
                   ...prev, 
                   tags: e.target.value 
                 }))}
-                className="mt-1 form-element"
+                className="mt-1"
               />
             </div>
             <div className="flex gap-2 pt-4">

@@ -210,7 +210,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#FFA69E' }}>
+    <div className="min-h-screen relative overflow-hidden">
       {/* Iridescence Background */}
       <div className="absolute inset-0 z-0">
         <Iridescence
@@ -223,7 +223,7 @@ export default function LoginPage() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md backdrop-blur-sm bg-white/95 shadow-2xl border-0">
+        <Card className="w-full max-w-md backdrop-blur-sm bg-white/90 shadow-2xl border-0">
           <CardHeader className="text-center pb-8">
             <div className="w-16 h-16 bg-gradient-to-br from-[#93E1D8] to-[#FFA69E] rounded-full flex items-center justify-center mx-auto mb-4">
               <Lock className="h-8 w-8 text-white" />
@@ -306,7 +306,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
-          <p className="text-sm text-white/80 text-center drop-shadow">
+          <p className="text-sm text-gray-600/80 text-center">
             © 2025 Zunhee. Powered by Supabase Auth
           </p>
         </div>

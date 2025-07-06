@@ -48,12 +48,10 @@ function BlogContent() {
               </TabsList>
 
               <TabsContent value="posts">
-                <div className="content-container rounded-3xl p-8 shadow-lg">
-                  <BlogList 
-                    onCreatePost={handleCreatePost}
-                    onEditPost={handleEditPost}
-                  />
-                </div>
+                <BlogList 
+                  onCreatePost={handleCreatePost}
+                  onEditPost={handleEditPost}
+                />
               </TabsContent>
 
               <TabsContent value="tags">
@@ -79,9 +77,7 @@ export default function BlogPage() {
   return (
     <AuthGuard>
       <Navbar />
-      <div className="min-h-screen" style={{ backgroundColor: '#FFA69E' }}>
-        <BlogContent />
-      </div>
+      <BlogContent />
       <Footer />
     </AuthGuard>
   );
