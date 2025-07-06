@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StorageIndicator } from '@/components/ui/storage-indicator';
-import { ImageCropper } from '@/components/ui/image-cropper';
 import { 
   Heart, 
   Search, 
@@ -31,8 +30,7 @@ import {
   ImageIcon,
   AlertTriangle,
   CheckCircle,
-  FileImage,
-  Crop
+  FileImage
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -75,8 +73,6 @@ function GalleryContent() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [message, setMessage] = useState('');
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
-  const [showCropper, setShowCropper] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -473,19 +469,7 @@ function GalleryContent() {
       return;
     }
 
-    setSelectedFile(file);
-    setShowCropper(true);
-  };
-
-  const handleCropComplete = (croppedFile: File) => {
-    setUploadData(prev => ({ ...prev, file: croppedFile }));
-    setShowCropper(false);
-    setSelectedFile(null);
-  };
-
-  const handleCropCancel = () => {
-    setShowCropper(false);
-    setSelectedFile(null);
+    setUploadData(prev => ({ ...prev, file }));
   };
 
   const categoriesWithAll = ['all', ...categories];
@@ -565,9 +549,6 @@ function GalleryContent() {
                         Kích thước: {formatBytes(uploadData.file.size)}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Ảnh sẽ được mở trong trình cắt ảnh để tối ưu hóa
-                    </p>
                   </div>
                   <div>
                     <Label htmlFor="upload-title">Tiêu đề *</Label>
@@ -897,28 +878,6 @@ function GalleryContent() {
           )}
         </div>
       </div>
-        {/* Image Cropper Modal */}
-        <Dialog open={showCropper} onOpenChange={() => !selectedFile && setShowCropper(false)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Crop className="h-5 w-5" />
-                Cắt và chỉnh sửa ảnh
-              </DialogTitle>
-            </DialogHeader>
-            {selectedFile && (
-              <ImageCropper
-                file={selectedFile}
-                onCropComplete={handleCropComplete}
-                onCancel={handleCropCancel}
-                aspectRatio={1} // Square by default, can be made configurable
-                maxWidth={1200}
-                maxHeight={1200}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-
 
       {/* Image Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
