@@ -4,6 +4,7 @@ import { Inter, Oswald, Dancing_Script, Amatic_SC, VT323, Edu_QLD_Beginner } fro
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { EdgeStoreProvider } from '@/lib/edgestore';
+import OnlineIndicator from '@/components/OnlineIndicator';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -63,6 +64,7 @@ export default function RootLayout({
         >
           <EdgeStoreProvider>
             {children}
+            <OnlineIndicator />
             <Toaster />
           </EdgeStoreProvider>
         </ThemeProvider>
