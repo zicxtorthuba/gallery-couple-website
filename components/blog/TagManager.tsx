@@ -139,10 +139,11 @@ export function TagManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[#7FFFD4] py-8">
+      <div className="max-w-6xl mx-auto px-4 space-y-6">
       {/* Success/Error Messages */}
       {message && (
-        <Alert className={message.includes('Lỗi') || message.includes('không thể') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
+        <Alert className={message.includes('Lỗi') || message.includes('không thể') ? 'border-red-200 bg-red-50/90' : 'border-green-200 bg-green-50/90'}>
           {message.includes('Lỗi') || message.includes('không thể') ? (
             <AlertTriangle className="h-4 w-4 text-red-500" />
           ) : (
@@ -156,14 +157,16 @@ export function TagManager() {
 
       {/* Header */}
       <div>
-        <h2 className="font-cormorant text-2xl font-light mb-2">Quản lý thẻ</h2>
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border-white/50 mb-6">
+          <h2 className="font-cormorant text-2xl font-light mb-2">Quản lý thẻ</h2>
         <p className="text-muted-foreground">
           Tạo và quản lý các thẻ cho bài viết
         </p>
+        </div>
       </div>
 
       {/* Create New Tag */}
-      <Card>
+      <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
         <CardHeader>
           <CardTitle className="text-lg">Tạo thẻ mới</CardTitle>
         </CardHeader>
@@ -219,7 +222,7 @@ export function TagManager() {
         {tagCategories.length > 0 && (
           <>
             {tagCategories.map(category => (
-              <Card key={category}>
+              <Card key={category} className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-lg capitalize">{category}</CardTitle>
                 </CardHeader>
@@ -268,7 +271,7 @@ export function TagManager() {
 
         {/* Uncategorized Tags */}
         {tags.filter(tag => !tag.category).length > 0 && (
-          <Card>
+          <Card className="bg-white/95 backdrop-blur-sm border-white/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Thẻ chưa phân loại</CardTitle>
             </CardHeader>
@@ -315,7 +318,7 @@ export function TagManager() {
 
         {/* Empty State */}
         {tags.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border-white/50">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Tag className="h-8 w-8 text-[#93E1D8]" />
             </div>
@@ -331,7 +334,7 @@ export function TagManager() {
 
       {/* Edit Tag Dialog */}
       <Dialog open={!!editingTag} onOpenChange={() => setEditingTag(null)}>
-        <DialogContent>
+        <DialogContent className="bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit3 className="h-5 w-5" />
@@ -388,7 +391,7 @@ export function TagManager() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent>
+        <DialogContent className="bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -418,6 +421,7 @@ export function TagManager() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
