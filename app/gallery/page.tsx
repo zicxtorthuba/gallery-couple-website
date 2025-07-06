@@ -55,6 +55,8 @@ import {
   getGalleryTags,
   type GalleryImage
 } from '@/lib/gallery-supabase';
+import { addToFavorites, removeFromFavorites, isFavorite } from '@/lib/favorites-supabase';
+import { CommentSection } from '@/components/ui/comment-section';
 import { getCurrentUser } from '@/lib/auth';
 
 function GalleryContent() {
@@ -74,6 +76,7 @@ function GalleryContent() {
   const [categories, setCategories] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showComments, setShowComments] = useState<string | null>(null);
   const { edgestore } = useEdgeStore();
   
   const [uploadData, setUploadData] = useState({
@@ -101,11 +104,39 @@ function GalleryContent() {
     filterImages();
   }, [images, searchTerm, selectedCategory, selectedTags]);
 
+  useEffect(() => {
+    if (currentUser) {
+      loadUserFavorites();
+    }
+  }, [currentUser, images]);
+
   const loadCurrentUser = async () => {
     const user = await getCurrentUser();
     setCurrentUser(user);
   };
 
+  const loadUserFavorites = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const favoriteStatuses = await Promise.all(
+        images.map(async (image) => {
+          const isFav = await isFavorite('gallery', image.id);
+          return { id: image.id, isFavorite: isFav };
+        })
+      );
+      
+      const favoriteIds = new Set(
+        favoriteStatuses
+          .filter(status => status.isFavorite)
+          .map(status => status.id)
+      );
+      
+      setFavoriteImages(favoriteIds);
+    } catch (error) {
+      console.error('Error loading user favorites:', error);
+    }
+  };
   const loadImages = async () => {
     try {
       setLoading(true);
@@ -190,16 +221,34 @@ function GalleryContent() {
     }
   };
 
-  const handleFavorite = (imageId: string) => {
-    setFavoriteImages(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(imageId)) {
-        newFavorites.delete(imageId);
+  const handleFavorite = async (imageId: string) => {
+    if (!currentUser) return;
+    
+    try {
+      const isCurrentlyFavorite = favoriteImages.has(imageId);
+      
+      if (isCurrentlyFavorite) {
+        const success = await removeFromFavorites('gallery', imageId);
+        if (success) {
+          setFavoriteImages(prev => {
+            const newFavorites = new Set(prev);
+            newFavorites.delete(imageId);
+            return newFavorites;
+          });
+        }
       } else {
-        newFavorites.add(imageId);
+        const success = await addToFavorites('gallery', imageId);
+        if (success) {
+          setFavoriteImages(prev => {
+            const newFavorites = new Set(prev);
+            newFavorites.add(imageId);
+            return newFavorites;
+          });
+        }
       }
-      return newFavorites;
-    });
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
   const handleDownload = async (imageUrl: string, imageName: string) => {
@@ -699,6 +748,7 @@ function GalleryContent() {
                           size="sm"
                           variant="secondary"
                           onClick={() => handleFavorite(image.id)}
+                          disabled={!currentUser}
                           className={`bg-white/90 hover:bg-white ${
                             favoriteImages.has(image.id) ? 'text-yellow-500' : ''
                           }`}
@@ -871,6 +921,7 @@ function GalleryContent() {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleDelete(selectedImage.id)}
+                        disabled={!currentUser}
                         className="text-red-500 hover:bg-red-50"
                         disabled={loading}
                       >
@@ -915,6 +966,14 @@ function GalleryContent() {
                 {selectedImage.size && (
                   <span>Kích thước: {formatBytes(selectedImage.size)}</span>
                 )}
+              </div>
+              
+              {/* Comments Section */}
+              <div className="mt-6">
+                <CommentSection 
+                  itemId={selectedImage.id} 
+                  itemType="gallery" 
+                />
               </div>
             </>
           )}

@@ -27,6 +27,9 @@ import {
 import { BlogPost, getBlogPost, getBlogPosts } from '@/lib/blog-supabase';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { CommentSection } from '@/components/ui/comment-section';
+import { addToFavorites, removeFromFavorites, isFavorite } from '@/lib/favorites-supabase';
+import { getCurrentUser } from '@/lib/auth';
 
 const iconMap: Record<string, any> = {
   FileText, Calendar, Clock, User, Tag, Eye, Palette
@@ -42,10 +45,17 @@ export default function BlogPostPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [likes, setLikes] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     loadPost();
+    loadUser();
   }, [postId]);
+
+  const loadUser = async () => {
+    const currentUser = await getCurrentUser();
+    setUser(currentUser);
+  };
 
   const loadPost = async () => {
     try {
@@ -55,6 +65,12 @@ export default function BlogPostPage() {
       if (foundPost && foundPost.status === 'published') {
         setPost(foundPost);
         setLikes(foundPost.likes);
+        
+        // Check if user has saved this post
+        if (user) {
+          const saved = await isFavorite('blog', postId);
+          setIsSaved(saved);
+        }
         
         // Get related posts (same tags, excluding current post)
         const allPosts = await getBlogPosts(false); // Only published posts
@@ -78,8 +94,24 @@ export default function BlogPostPage() {
     setLikes(prev => isLiked ? prev - 1 : prev + 1);
   };
 
-  const handleSave = () => {
-    setIsSaved(!isSaved);
+  const handleSave = async () => {
+    if (!user || !post) return;
+    
+    try {
+      if (isSaved) {
+        const success = await removeFromFavorites('blog', post.id);
+        if (success) {
+          setIsSaved(false);
+        }
+      } else {
+        const success = await addToFavorites('blog', post.id);
+        if (success) {
+          setIsSaved(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling save status:', error);
+    }
   };
 
   const handleShare = () => {
@@ -197,10 +229,11 @@ export default function BlogPostPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleSave}
+                disabled={!user}
                 className={`gap-2 ${isSaved ? 'text-blue-500 border-blue-200' : ''}`}
               >
                 <BookmarkIcon className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
-                {isSaved ? 'Đã lưu' : 'Lưu'}
+                {!user ? 'Đăng nhập để lưu' : (isSaved ? 'Đã lưu' : 'Lưu')}
               </Button>
               <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
                 <ShareIcon className="h-4 w-4" />
@@ -340,6 +373,14 @@ export default function BlogPostPage() {
               </div>
             </>
           )}
+
+          {/* Comments Section */}
+          <Separator className="my-12" />
+          <CommentSection 
+            itemId={post.id} 
+            itemType="blog" 
+            className="mt-8"
+          />
         </div>
       </div>
 
