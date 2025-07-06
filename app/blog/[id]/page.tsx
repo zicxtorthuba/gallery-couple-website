@@ -162,7 +162,7 @@ export default function BlogPostPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={{ backgroundColor: '#FFA69E' }}>
         <Navbar />
         <div className="pt-20 pb-16 flex justify-center items-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
@@ -174,14 +174,16 @@ export default function BlogPostPage() {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={{ backgroundColor: '#FFA69E' }}>
         <Navbar />
         <div className="pt-20 pb-16">
           <div className="container mx-auto px-4 text-center">
+            <div className="content-container rounded-3xl p-8 shadow-lg">
             <h1 className="text-2xl font-bold mb-4">Bài viết không tồn tại</h1>
             <Link href="/blog">
               <Button variant="outline">Quay lại Blog</Button>
             </Link>
+            </div>
           </div>
         </div>
         <Footer />
@@ -192,11 +194,12 @@ export default function BlogPostPage() {
   const PostIcon = getPostIcon();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ backgroundColor: '#FFA69E' }}>
       <Navbar />
       
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4 max-w-4xl">
+          <div className="content-container rounded-3xl p-8 shadow-lg">
           {/* Back Button */}
           <Link href="/blog" className="inline-flex items-center gap-2 text-muted-foreground hover:text-[#93E1D8] transition-colors mb-8">
             <ArrowLeftIcon className="h-4 w-4" />
@@ -357,7 +360,7 @@ export default function BlogPostPage() {
                     
                     return (
                       <Link key={relatedPost.id} href={`/blog/${relatedPost.id}`} className="group">
-                        <div className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                        <div className="card-soft rounded-xl overflow-hidden hover:shadow-md transition-shadow">
                           {relatedPost.featuredImage ? (
                             <div className="relative h-48">
                               <Image
@@ -407,6 +410,7 @@ export default function BlogPostPage() {
             itemType="blog" 
             className="mt-8"
           />
+          </div>
         </div>
       </div>
 

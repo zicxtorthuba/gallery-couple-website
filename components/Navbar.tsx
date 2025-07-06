@@ -62,8 +62,8 @@ export function Navbar() {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out",
         isScrolled
-          ? "bg-white/80 backdrop-blur-md py-3 shadow-sm"
-          : "bg-transparent py-5"
+          ? "bg-white/90 backdrop-blur-md py-3 shadow-sm"
+          : "bg-white/20 backdrop-blur-sm py-5"
       )}
     >
       <div className="container mx-auto flex items-center justify-between px-4">
@@ -98,7 +98,7 @@ export function Navbar() {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuContent className="w-56 bg-white/95 backdrop-blur-md" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
                     <p className="font-medium">{user.name}</p>
@@ -125,7 +125,7 @@ export function Navbar() {
             <Link href="/login">
               <Button 
                 variant="outline" 
-                className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 rounded-full px-6"
+                className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8] hover:text-white bg-white/90 backdrop-blur-sm rounded-full px-6 transition-all duration-300"
               >
                 <User className="h-4 w-4 mr-2" />
                 Đăng nhập

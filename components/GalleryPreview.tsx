@@ -27,10 +27,11 @@ export function GalleryPreview() {
   };
 
   return (
-    <section id="gallery-preview" className="py-24 bg-[#DDFFF7]/20">
+    <section id="gallery-preview" className="py-24" style={{ backgroundColor: '#FFA69E' }}>
       <div className="container mx-auto px-4">
+        <div className="content-container rounded-3xl p-8 shadow-lg">
         <div className="text-center mb-16">
-          <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Bộ sưu tập</h2>
+          <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4 text-gray-800">Bộ sưu tập</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Bộ sưu tập theo chủ đề, từ những khoảnh khắc hấp dẫn đến những kỷ niệm đáng nhớ.
           </p>
@@ -71,7 +72,7 @@ export function GalleryPreview() {
             {/* View All Button */}
             <div className="text-center">
               <Link href="/gallery">
-                <Button variant="outline" className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 px-8 py-3 rounded-full">
+                <Button variant="outline" className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8] hover:text-white px-8 py-3 rounded-full transition-all duration-300">
                   <ImageIcon className="h-4 w-4 mr-2" />
                   Xem tất cả ảnh
                 </Button>
@@ -100,6 +101,7 @@ export function GalleryPreview() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </section>
   );

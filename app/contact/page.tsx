@@ -42,14 +42,15 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: '#FFA69E' }}>
       <Navbar />
       
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4 max-w-6xl">
+          <div className="content-container rounded-3xl p-8 shadow-lg">
           {/* Header */}
           <div className="text-center mb-16">
-            <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4">
+            <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4 text-gray-800">
               Liên hệ với chúng tôi
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
@@ -175,7 +176,7 @@ export default function ContactPage() {
                           onChange={handleInputChange}
                           placeholder="Nhập họ và tên"
                           required
-                          className="h-12"
+                          className="h-12 form-element"
                         />
                       </div>
                       <div className="space-y-2">
@@ -188,7 +189,7 @@ export default function ContactPage() {
                           onChange={handleInputChange}
                           placeholder="Nhập địa chỉ email"
                           required
-                          className="h-12"
+                          className="h-12 form-element"
                         />
                       </div>
                     </div>
@@ -202,7 +203,7 @@ export default function ContactPage() {
                           value={formData.phone}
                           onChange={handleInputChange}
                           placeholder="Nhập số điện thoại"
-                          className="h-12"
+                          className="h-12 form-element"
                         />
                       </div>
                       <div className="space-y-2">
@@ -214,7 +215,7 @@ export default function ContactPage() {
                           onChange={handleInputChange}
                           placeholder="Nhập chủ đề"
                           required
-                          className="h-12"
+                          className="h-12 form-element"
                         />
                       </div>
                     </div>
@@ -229,7 +230,7 @@ export default function ContactPage() {
                         placeholder="Nhập tin nhắn của bạn..."
                         required
                         rows={6}
-                        className="resize-none"
+                        className="resize-none form-element"
                       />
                     </div>
 
@@ -262,6 +263,7 @@ export default function ContactPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
           </div>
         </div>
       </div>
