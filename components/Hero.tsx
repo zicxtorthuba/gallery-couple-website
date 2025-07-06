@@ -39,7 +39,7 @@ export function Hero() {
               isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
             }`}
           >
-            Mỗi khoảng khắc là một hành trình đặc biệt
+            Mỗi khoảnh khắc là một hành trình đặc biệt
           </p>
           <Link 
             href="/gallery" 
