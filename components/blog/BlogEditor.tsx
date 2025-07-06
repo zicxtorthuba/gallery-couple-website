@@ -64,8 +64,6 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     content: post?.content || '',
     featuredImage: post?.featuredImage || '',
     customIcon: post?.customIcon || '',
-    titleFont: post?.titleFont || 'default',
-    contentFont: post?.contentFont || 'default',
     tags: post?.tags || [],
     status: post?.status || 'draft' as 'draft' | 'published'
   });
@@ -375,7 +373,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 rows={15}
-                className={`resize-none font-cormorant text-base leading-relaxed ${errors.content ? 'border-red-500' : ''}`}
+                className={`resize-none ${getContentFontClass()} text-base leading-relaxed ${errors.content ? 'border-red-500' : ''}`}
               />
               {errors.content && (
                 <p className="text-red-500 text-sm mt-1">{errors.content}</p>
