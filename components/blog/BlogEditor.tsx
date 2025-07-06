@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StorageIndicator } from '@/components/ui/storage-indicator';
+import { ImageCropper } from '@/components/ui/image-cropper';
 import { 
   Save, 
   Eye, 
@@ -27,6 +28,7 @@ import {
   CheckCircle,
   AlertCircle,
   FileImage
+  Crop
 } from 'lucide-react';
 import { useEdgeStore } from '@/lib/edgestore';
 import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag } from '@/lib/blog-supabase';
@@ -90,6 +92,8 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const [saveMessage, setSaveMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   
   const { edgestore } = useEdgeStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -160,6 +164,65 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
       return;
     }
 
+    // Open cropper instead of direct upload
+    setSelectedImageFile(file);
+    setShowCropper(true);
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    try {
+      setIsUploading(true);
+      setShowCropper(false);
+      setSelectedImageFile(null);
+      
+      // If there's an existing featured image, remove it from storage tracking
+      if (formData.featuredImage && (formData.featuredImage.includes('edgestore') || formData.featuredImage.includes('files.edgestore.dev'))) {
+        try {
+          await edgestore.images.delete({ url: formData.featuredImage });
+          await removeFileUpload(formData.featuredImage);
+        } catch (error) {
+          console.warn('Failed to delete old featured image:', error);
+        }
+      }
+
+      const res = await edgestore.images.upload({
+        file: croppedFile,
+        onProgressChange: (progress) => {
+          console.log('Upload progress:', progress);
+        },
+      });
+      
+      // Record the upload in our storage tracking
+      const recorded = await recordFileUpload(
+        res.url,
+        croppedFile.name,
+        croppedFile.size,
+        'blog',
+        post?.id
+      );
+
+      if (!recorded) {
+        console.warn('Failed to record file upload, but continuing...');
+      }
+      
+      setFormData(prev => ({ ...prev, featuredImage: res.url }));
+      setSaveMessage('Ảnh đã được cắt và tải lên thành công!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setSaveMessage('Lỗi khi tải ảnh lên');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setSelectedImageFile(null);
+  };
+
+  const handleImageUploadDirect = async (file: File) => {
     try {
       setIsUploading(true);
       
@@ -546,8 +609,8 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 disabled={isUploading || storageInfo?.remaining === 0}
                 className="w-full"
               >
-                <Upload className="h-4 w-4 mr-2" />
-                {isUploading ? 'Đang tải...' : (storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh lên')}
+                <Crop className="h-4 w-4 mr-2" />
+                {isUploading ? 'Đang tải...' : (storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Chọn và cắt ảnh')}
               </Button>
             </CardContent>
           </Card>
@@ -633,6 +696,10 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                   <Plus className="h-3 w-3 mr-1" />
                   Thêm thẻ
                 </Button>
+              
+              <p className="text-xs text-muted-foreground mt-2">
+                Ảnh sẽ được mở trong trình cắt để tối ưu hóa kích thước và chất lượng hiển thị
+              </p>
               </div>
 
               {/* Available Tags */}
@@ -665,6 +732,29 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           </Card>
         </div>
       </div>
+
+      {/* Image Cropper Modal */}
+      <Dialog open={showCropper} onOpenChange={() => !selectedImageFile && setShowCropper(false)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crop className="h-5 w-5" />
+              Cắt ảnh đại diện cho bài viết
+            </DialogTitle>
+          </DialogHeader>
+          {selectedImageFile && (
+            <ImageCropper
+              file={selectedImageFile}
+              onCropComplete={handleCropComplete}
+              onCancel={handleCropCancel}
+              aspectRatio={16/9} // Widescreen aspect ratio for blog featured images
+              maxWidth={1920}
+              maxHeight={1080}
+              showAspectRatioOptions={true}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
