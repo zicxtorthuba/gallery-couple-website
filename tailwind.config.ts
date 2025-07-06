@@ -12,6 +12,13 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-inter)', 'sans-serif'],
         cormorant: ['var(--font-cormorant)', 'serif'],
+        'dancing-script': ['var(--font-dancing-script)', 'cursive'],
+        'playwrite-vn': ['Playwrite VN', 'cursive'],
+        'my-soul': ['My Soul', 'cursive'],
+        'edu-qld': ['var(--font-edu-qld)', 'cursive'],
+        'amatic-sc': ['var(--font-amatic-sc)', 'cursive'],
+        'vt323': ['var(--font-vt323)', 'monospace'],
+        'pinyon-script': ['Pinyon Script', 'cursive'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

@@ -64,6 +64,8 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     content: post?.content || '',
     featuredImage: post?.featuredImage || '',
     customIcon: post?.customIcon || '',
+    titleFont: post?.titleFont || 'default',
+    contentFont: post?.contentFont || 'default',
     tags: post?.tags || [],
     status: post?.status || 'draft' as 'draft' | 'published'
   });

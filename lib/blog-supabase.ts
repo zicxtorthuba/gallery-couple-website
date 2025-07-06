@@ -8,6 +8,8 @@ export interface BlogPost {
   excerpt: string;
   featuredImage?: string;
   customIcon?: string;
+  titleFont?: string;
+  contentFont?: string;
   author: string;
   authorId: string;
   authorAvatar: string;
@@ -65,6 +67,8 @@ export const getBlogPosts = async (includeUnpublished = false): Promise<BlogPost
       excerpt: post.excerpt || generateExcerpt(post.content),
       featuredImage: post.featured_image || undefined,
       customIcon: post.custom_icon || undefined,
+      titleFont: post.title_font || undefined,
+      contentFont: post.content_font || undefined,
       author: post.author_name,
       authorId: post.author_id,
       authorAvatar: post.author_avatar || '',
@@ -104,6 +108,8 @@ export const getBlogPost = async (id: string): Promise<BlogPost | null> => {
       excerpt: data.excerpt || generateExcerpt(data.content),
       featuredImage: data.featured_image || undefined,
       customIcon: data.custom_icon || undefined,
+      titleFont: data.title_font || undefined,
+      contentFont: data.content_font || undefined,
       author: data.author_name,
       authorId: data.author_id,
       authorAvatar: data.author_avatar || '',
@@ -169,6 +175,8 @@ export const createBlogPost = async (postData: Partial<BlogPost>): Promise<BlogP
       excerpt: data.excerpt || excerpt,
       featuredImage: data.featured_image || undefined,
       customIcon: data.custom_icon || undefined,
+      titleFont: data.title_font || undefined,
+      contentFont: data.content_font || undefined,
       author: data.author_name,
       authorId: data.author_id,
       authorAvatar: data.author_avatar || '',
@@ -256,6 +264,8 @@ export const updateBlogPost = async (postId: string, updates: Partial<BlogPost>)
       excerpt: data.excerpt || generateExcerpt(data.content),
       featuredImage: data.featured_image || undefined,
       customIcon: data.custom_icon || undefined,
+      titleFont: data.title_font || undefined,
+      contentFont: data.content_font || undefined,
       author: data.author_name,
       authorId: data.author_id,
       authorAvatar: data.author_avatar || '',
