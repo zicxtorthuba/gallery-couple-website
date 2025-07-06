@@ -10,7 +10,6 @@ export interface BlogPost {
   customIcon?: string;
   titleFont?: string;
   contentFont?: string;
-  imageLayouts?: ImageLayout[];
   author: string;
   authorId: string;
   authorAvatar: string;
@@ -23,25 +22,6 @@ export interface BlogPost {
   tags: string[];
   status: 'draft' | 'published';
   revisionHistory: BlogRevision[];
-}
-
-export interface ImageLayout {
-  id: string;
-  imageUrl: string;
-  cropSettings: {
-    layout: 'horizontal' | 'vertical';
-    imagePosition?: 'left' | 'right';
-    cropArea: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
-    zoom: number;
-    rotation: number;
-  };
-  content: string;
-  order: number;
 }
 
 export interface BlogRevision {
@@ -91,7 +71,6 @@ export const getBlogPosts = async (includeUnpublished = false): Promise<BlogPost
       contentFont: post.content_font || undefined,
       author: post.author_name,
       authorId: post.author_id,
-      imageLayouts: post.image_layouts || [],
       authorAvatar: post.author_avatar || '',
       publishedAt: post.published_at || '',
       createdAt: post.created_at,
@@ -133,7 +112,6 @@ export const getBlogPost = async (id: string): Promise<BlogPost | null> => {
       contentFont: data.content_font || undefined,
       author: data.author_name,
       authorId: data.author_id,
-      imageLayouts: data.image_layouts || [],
       authorAvatar: data.author_avatar || '',
       publishedAt: data.published_at || '',
       createdAt: data.created_at,
@@ -168,7 +146,6 @@ export const createBlogPost = async (postData: Partial<BlogPost>): Promise<BlogP
       custom_icon: postData.customIcon || null,
       title_font: postData.titleFont,
       content_font: postData.contentFont,
-      image_layouts: postData.imageLayouts || [],
       author_id: user.id,
       author_name: user.name,
       author_avatar: user.image || null,
@@ -204,7 +181,6 @@ export const createBlogPost = async (postData: Partial<BlogPost>): Promise<BlogP
       contentFont: data.content_font || undefined,
       author: data.author_name,
       authorId: data.author_id,
-      imageLayouts: data.image_layouts || [],
       authorAvatar: data.author_avatar || '',
       publishedAt: data.published_at || '',
       createdAt: data.created_at,
@@ -257,9 +233,6 @@ export const updateBlogPost = async (postId: string, updates: Partial<BlogPost>)
     }
     if (updates.featuredImage !== undefined) updateData.featured_image = updates.featuredImage;
     if (updates.customIcon !== undefined) updateData.custom_icon = updates.customIcon;
-    if (updates.titleFont !== undefined) updateData.title_font = updates.titleFont;
-    if (updates.contentFont !== undefined) updateData.content_font = updates.contentFont;
-    if (updates.imageLayouts !== undefined) updateData.image_layouts = updates.imageLayouts;
     if (updates.tags !== undefined) updateData.tags = updates.tags;
     if (updates.status !== undefined) {
       updateData.status = updates.status;
@@ -297,7 +270,6 @@ export const updateBlogPost = async (postId: string, updates: Partial<BlogPost>)
       contentFont: data.content_font || undefined,
       author: data.author_name,
       authorId: data.author_id,
-      imageLayouts: data.image_layouts || [],
       authorAvatar: data.author_avatar || '',
       publishedAt: data.published_at || '',
       createdAt: data.created_at,

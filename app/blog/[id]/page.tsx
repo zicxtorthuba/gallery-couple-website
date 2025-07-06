@@ -30,7 +30,6 @@ import { Footer } from '@/components/Footer';
 import { CommentSection } from '@/components/ui/comment-section';
 import { addToFavorites, removeFromFavorites, isFavorite } from '@/lib/favorites-supabase';
 import { getCurrentUser } from '@/lib/auth';
-import { ImageLayoutDisplay } from '@/components/ui/image-layout-display';
 
 const iconMap: Record<string, any> = {
   FileText, Calendar, Clock, User, Tag, Eye, Palette
@@ -294,23 +293,6 @@ export default function BlogPostPage() {
 
           {/* Content */}
           <article className="prose prose-lg max-w-none">
-            {/* Image Layouts */}
-            {post.imageLayouts && post.imageLayouts.length > 0 && (
-              <div className="space-y-8 mb-8">
-                {post.imageLayouts
-                  .sort((a, b) => a.order - b.order)
-                  .map((layout) => (
-                    <ImageLayoutDisplay
-                      key={layout.id}
-                      imageUrl={layout.imageUrl}
-                      cropSettings={layout.cropSettings}
-                      content={layout.content}
-                      editable={false}
-                    />
-                  ))}
-              </div>
-            )}
-
             <div 
               className={`text-gray-700 leading-relaxed space-y-6 ${getFontClass(post.contentFont)}`}
               style={{ 
