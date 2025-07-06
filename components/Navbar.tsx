@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Settings } from "lucide-react";
 import { getCurrentUser, signOut, onAuthStateChange, type AuthUser } from "@/lib/auth";
-import Link from "next/link";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
