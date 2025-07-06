@@ -26,10 +26,11 @@ import {
   FileText,
   CheckCircle,
   AlertCircle,
-  FileImage
+  FileImage,
+  Scissors
 } from 'lucide-react';
 import { useEdgeStore } from '@/lib/edgestore';
-import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag } from '@/lib/blog-supabase';
+import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag, type ImageLayout } from '@/lib/blog-supabase';
 import { getCurrentUser } from '@/lib/auth';
 import { 
   isFileSizeValid, 
@@ -40,6 +41,8 @@ import {
   MAX_FILE_SIZE,
   type StorageInfo
 } from '@/lib/storage';
+import { ImageCropper, type CropSettings } from '@/components/ui/image-cropper';
+import { ImageLayoutDisplay } from '@/components/ui/image-layout-display';
 
 interface BlogEditorProps {
   post?: BlogPost;
@@ -78,7 +81,8 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     tags: post?.tags || [],
     status: post?.status || 'draft' as 'draft' | 'published',
     titleFont: post?.titleFont || '',
-    contentFont: post?.contentFont || ''
+    contentFont: post?.contentFont || '',
+    imageLayouts: post?.imageLayouts || []
   });
   
   const [newTag, setNewTag] = useState('');
@@ -90,6 +94,8 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const [saveMessage, setSaveMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+  const [showImageCropper, setShowImageCropper] = useState(false);
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   
   const { edgestore } = useEdgeStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -257,7 +263,8 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           tags: formData.tags,
           status: formData.status,
           titleFont: formData.titleFont || undefined,
-          contentFont: formData.contentFont || undefined
+          contentFont: formData.contentFont || undefined,
+          imageLayouts: formData.imageLayouts
         });
       } else {
         savedPost = await createBlogPost({
@@ -271,7 +278,8 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           authorId: user.id,
           authorAvatar: user.image || '',
           titleFont: formData.titleFont || undefined,
-          contentFont: formData.contentFont || undefined
+          contentFont: formData.contentFont || undefined,
+          imageLayouts: formData.imageLayouts
         });
       }
       
@@ -302,6 +310,69 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const getFontClass = (fontValue: string) => {
     const font = fontOptions.find(f => f.value === fontValue);
     return font ? font.className : 'font-cormorant';
+  };
+
+  const handleAddImageLayout = () => {
+    setEditingImageIndex(null);
+    setShowImageCropper(true);
+  };
+
+  const handleEditImageLayout = (index: number) => {
+    setEditingImageIndex(index);
+    setShowImageCropper(true);
+  };
+
+  const handleImageCropComplete = (croppedImageUrl: string, cropSettings: CropSettings) => {
+    const newImageLayout: ImageLayout = {
+      id: `img-${Date.now()}`,
+      imageUrl: croppedImageUrl,
+      cropSettings,
+      content: '',
+      order: formData.imageLayouts.length
+    };
+
+    if (editingImageIndex !== null) {
+      // Update existing image layout
+      const updatedLayouts = [...formData.imageLayouts];
+      updatedLayouts[editingImageIndex] = {
+        ...updatedLayouts[editingImageIndex],
+        imageUrl: croppedImageUrl,
+        cropSettings
+      };
+      setFormData(prev => ({ ...prev, imageLayouts: updatedLayouts }));
+    } else {
+      // Add new image layout
+      setFormData(prev => ({ 
+        ...prev, 
+        imageLayouts: [...prev.imageLayouts, newImageLayout] 
+      }));
+    }
+  };
+
+  const handleDeleteImageLayout = (index: number) => {
+    const updatedLayouts = formData.imageLayouts.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, imageLayouts: updatedLayouts }));
+  };
+
+  const handleImageContentChange = (index: number, content: string) => {
+    const updatedLayouts = [...formData.imageLayouts];
+    updatedLayouts[index] = { ...updatedLayouts[index], content };
+    setFormData(prev => ({ ...prev, imageLayouts: updatedLayouts }));
+  };
+
+  const moveImageLayout = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= formData.imageLayouts.length) return;
+
+    const updatedLayouts = [...formData.imageLayouts];
+    [updatedLayouts[index], updatedLayouts[newIndex]] = [updatedLayouts[newIndex], updatedLayouts[index]];
+    
+    // Update order
+    updatedLayouts.forEach((layout, i) => {
+      layout.order = i;
+    });
+
+    setFormData(prev => ({ ...prev, imageLayouts: updatedLayouts }));
   };
 
   const SelectedIcon = getSelectedIcon();
@@ -447,6 +518,103 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Image Layouts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Ảnh và bố cục</span>
+                <Button
+                  size="sm"
+                  onClick={handleAddImageLayout}
+                  className="bg-[#93E1D8] hover:bg-[#93E1D8]/90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Thêm ảnh
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {formData.imageLayouts.length === 0 ? (
+                <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <Scissors className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    Chưa có ảnh nào. Thêm ảnh để tạo bố cục đẹp mắt cho bài viết.
+                  </p>
+                  <Button
+                    onClick={handleAddImageLayout}
+                    variant="outline"
+                    className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Thêm ảnh đầu tiên
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {formData.imageLayouts.map((layout, index) => (
+                    <div key={layout.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Ảnh {index + 1}</h4>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveImageLayout(index, 'up')}
+                            disabled={index === 0}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveImageLayout(index, 'down')}
+                            disabled={index === formData.imageLayouts.length - 1}
+                          >
+                            ↓
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditImageLayout(index)}
+                          >
+                            <Scissors className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteImageLayout(index)}
+                            className="text-red-500 hover:bg-red-50"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <ImageLayoutDisplay
+                        imageUrl={layout.imageUrl}
+                        cropSettings={layout.cropSettings}
+                        content={layout.content}
+                        editable={false}
+                      />
+
+                      <div>
+                        <Label htmlFor={`content-${index}`}>Nội dung cho ảnh này</Label>
+                        <Textarea
+                          id={`content-${index}`}
+                          value={layout.content}
+                          onChange={(e) => handleImageContentChange(index, e.target.value)}
+                          placeholder="Nhập nội dung hiển thị cùng với ảnh này..."
+                          rows={3}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -726,6 +894,18 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
 
             {/* Content */}
             <div className="prose prose-lg max-w-none">
+              {/* Image Layouts */}
+              {formData.imageLayouts.map((layout, index) => (
+                <div key={layout.id} className="my-8">
+                  <ImageLayoutDisplay
+                    imageUrl={layout.imageUrl}
+                    cropSettings={layout.cropSettings}
+                    content={layout.content}
+                    editable={false}
+                  />
+                </div>
+              ))}
+
               <div 
                 className={`text-gray-700 leading-relaxed space-y-6 ${getFontClass(formData.contentFont)}`}
                 style={{ 
@@ -746,6 +926,14 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Cropper */}
+      <ImageCropper
+        isOpen={showImageCropper}
+        onClose={() => setShowImageCropper(false)}
+        onCropComplete={handleImageCropComplete}
+        initialImage={editingImageIndex !== null ? formData.imageLayouts[editingImageIndex]?.imageUrl : undefined}
+      />
     </div>
   );
 }
