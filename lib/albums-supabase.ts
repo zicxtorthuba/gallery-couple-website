@@ -311,6 +311,33 @@ export const removeImageFromAlbum = async (
   }
 };
 
+// Remove image from album
+export const removeImageFromAlbum = async (
+  albumId: string,
+  imageId: string
+): Promise<boolean> => {
+  try {
+    const user = await getCurrentUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('album_images')
+      .delete()
+      .eq('album_id', albumId)
+      .eq('image_id', imageId);
+
+    if (error) {
+      console.error('Error removing image from album:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in removeImageFromAlbum:', error);
+    return false;
+  }
+};
+
 // Get user's albums
 export const getUserAlbums = async (): Promise<Album[]> => {
   try {

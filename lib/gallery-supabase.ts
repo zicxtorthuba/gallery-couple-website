@@ -16,12 +16,19 @@ export interface GalleryImage {
 }
 
 // Get all gallery images
-export const getGalleryImages = async (): Promise<GalleryImage[]> => {
+export const getGalleryImages = async (excludeAlbumImages = true): Promise<GalleryImage[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('gallery_images')
       .select('*')
       .order('created_at', { ascending: false });
+
+    // Exclude images that are in albums if requested
+    if (excludeAlbumImages) {
+      query = query.not('category', 'eq', 'album');
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching gallery images:', error);
@@ -43,6 +50,39 @@ export const getGalleryImages = async (): Promise<GalleryImage[]> => {
     })) || [];
   } catch (error) {
     console.error('Error in getGalleryImages:', error);
+    return [];
+  }
+};
+
+// Get gallery images that are not in any album
+export const getNonAlbumGalleryImages = async (): Promise<GalleryImage[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('gallery_images')
+      .select('*')
+      .neq('category', 'album')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching non-album gallery images:', error);
+      return [];
+    }
+
+    return data?.map(image => ({
+      id: image.id,
+      url: image.url,
+      title: image.title,
+      description: image.description || undefined,
+      category: image.category,
+      tags: image.tags || [],
+      likes: image.likes,
+      author: image.author_name,
+      authorId: image.author_id,
+      createdAt: image.created_at,
+      size: image.size || undefined
+    })) || [];
+  } catch (error) {
+    console.error('Error in getNonAlbumGalleryImages:', error);
     return [];
   }
 };

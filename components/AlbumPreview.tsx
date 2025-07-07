@@ -45,7 +45,7 @@ export function AlbumPreview() {
             {/* Albums Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {albums.map((album) => (
-                <Link key={album.id} href="/gallery" className="group">
+                <Link key={album.id} href={`/albums/${album.id}`} className="group">
                   <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100">
                     {/* Cover Image */}
                     <div className="relative h-48 overflow-hidden">
@@ -101,7 +101,7 @@ export function AlbumPreview() {
 
             {/* View All Button */}
             <div className="text-center">
-              <Link href="/gallery">
+              <Link href="/albums">
                 <Button variant="outline" className="border-[#93E1D8] text-[#93E1D8] hover:bg-[#93E1D8]/10 px-8 py-3 rounded-full">
                   <Eye className="h-4 w-4 mr-2" />
                   Xem tất cả album
@@ -125,7 +125,7 @@ export function AlbumPreview() {
               <Link href="/gallery">
                 <Button className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full">
                   <FolderPlus className="h-4 w-4 mr-2" />
-                  Tạo album đầu tiên
+                  Quản lý album
                 </Button>
               </Link>
             </div>

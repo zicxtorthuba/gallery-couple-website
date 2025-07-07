@@ -142,7 +142,7 @@ function GalleryContent() {
   const loadImages = async () => {
     try {
       setLoading(true);
-      const galleryImages = await getGalleryImages();
+      const galleryImages = await getGalleryImages(true); // Exclude album images
       setImages(galleryImages);
     } catch (error) {
       console.error('Error loading images:', error);

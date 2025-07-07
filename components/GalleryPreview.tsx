@@ -17,7 +17,7 @@ export function GalleryPreview() {
 
   const loadImages = async () => {
     try {
-      const galleryImages = await getGalleryImages();
+      const galleryImages = await getGalleryImages(true); // Exclude album images
       setImages(galleryImages.slice(0, 6)); // Show only 6 latest images
     } catch (error) {
       console.error('Error loading gallery preview:', error);

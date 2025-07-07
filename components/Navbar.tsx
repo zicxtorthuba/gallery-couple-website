@@ -77,6 +77,7 @@ export function Navbar() {
 
         <nav className="hidden md:flex items-center gap-8">
           <NavLink href="/gallery" color="#FFA69E">Gallery</NavLink>
+          <NavLink href="/albums" color="#FFA69E">Albums</NavLink>
           <NavLink href="/blog" color="#FFA69E">Blog</NavLink>
         </nav>
 
@@ -244,6 +245,13 @@ function MobileMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =>
                 className="font-cormorant transition-colors text-[#FFA69E] hover:text-[#FF8A80]"
               >
                 Gallery
+              </Link>
+              <Link
+                href="/albums"
+                onClick={() => setIsOpen(false)}
+                className="font-cormorant transition-colors text-[#FFA69E] hover:text-[#FF8A80]"
+              >
+                Albums
               </Link>
               <Link
                 href="/blog"
