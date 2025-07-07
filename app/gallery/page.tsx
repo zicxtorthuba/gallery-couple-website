@@ -58,7 +58,6 @@ import {
   type GalleryImage
 } from '@/lib/gallery-supabase';
 import { addToFavorites, removeFromFavorites, isFavorite } from '@/lib/favorites-supabase';
-import { CommentSection } from '@/components/ui/comment-section';
 import { getCurrentUser } from '@/lib/auth';
 
 function GalleryContent() {
@@ -67,6 +66,7 @@ function GalleryContent() {
   const [activeTab, setActiveTab] = useState('images');
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [editingImage, setEditingImage] = useState<GalleryImage | null>(null);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState<{ image: GalleryImage; step: 1 | 2 } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -79,7 +79,6 @@ function GalleryContent() {
   const [categories, setCategories] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [showComments, setShowComments] = useState<string | null>(null);
   const { edgestore } = useEdgeStore();
   
   const [uploadData, setUploadData] = useState({
@@ -778,14 +777,24 @@ function GalleryContent() {
                           <Download className="h-4 w-4" />
                         </Button>
                         {currentUser && currentUser.id === image.authorId && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleEdit(image)}
-                            className="bg-white/90 hover:bg-white"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleEdit(image)}
+                              className="bg-white/90 hover:bg-white"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setDeleteConfirmStep({ image, step: 1 })}
+                              className="bg-white/90 hover:bg-white text-red-500 hover:text-red-600 ml-6"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -939,7 +948,7 @@ function GalleryContent() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => handleDelete(selectedImage.id)}
+                        onClick={() => setDeleteConfirmStep({ image: selectedImage, step: 1 })}
                         className="text-red-500 hover:bg-red-50"
                         disabled={!currentUser || loading}
                       >
@@ -984,14 +993,6 @@ function GalleryContent() {
                 {selectedImage.size && (
                   <span>Kích thước: {formatBytes(selectedImage.size)}</span>
                 )}
-              </div>
-              
-              {/* Comments Section */}
-              <div className="mt-6">
-                <CommentSection 
-                  itemId={selectedImage.id} 
-                  itemType="gallery" 
-                />
               </div>
             </>
           )}
@@ -1061,6 +1062,97 @@ function GalleryContent() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmStep} onOpenChange={() => setDeleteConfirmStep(null)}>
+        <DialogContent className="bg-white/95 backdrop-blur-sm max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              {deleteConfirmStep?.step === 1 ? 'Xác nhận xóa ảnh' : 'Xác nhận cuối cùng'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {deleteConfirmStep && (
+            <div className="space-y-6">
+              {deleteConfirmStep.step === 1 ? (
+                <>
+                  <div className="text-center">
+                    <p className="text-lg font-medium mb-2">
+                      Bạn có chắc chắn muốn xóa ảnh này?
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      "{deleteConfirmStep.image.title}"
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3 justify-center">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setDeleteConfirmStep(null)}
+                      className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    >
+                      Hủy
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => setDeleteConfirmStep({ ...deleteConfirmStep, step: 2 })}
+                      className="px-6 bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      Xóa
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <AlertTriangle className="h-8 w-8 text-red-500" />
+                    </div>
+                    <p className="text-lg font-medium mb-2 text-red-600">
+                      Hành động này không thể hoàn tác!
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Bạn có chắc chắn muốn xóa vĩnh viễn ảnh này?
+                    </p>
+                    <p className="text-sm font-medium">
+                      "{deleteConfirmStep.image.title}"
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3 justify-center">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setDeleteConfirmStep(null)}
+                      className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    >
+                      Hủy
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        handleDelete(deleteConfirmStep.image.id);
+                        setDeleteConfirmStep(null);
+                      }}
+                      disabled={loading}
+                      className="px-6 bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Đang xóa...
+                        </>
+                      ) : (
+                        'Có, xóa vĩnh viễn'
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
