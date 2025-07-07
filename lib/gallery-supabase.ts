@@ -93,6 +93,18 @@ export const createGalleryImage = async (imageData: {
     const user = await getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
+    // Check if image with this URL already exists to prevent duplicates
+    const { data: existingImage } = await supabase
+      .from('gallery_images')
+      .select('id')
+      .eq('url', imageData.url)
+      .single();
+
+    if (existingImage) {
+      console.log('Image with this URL already exists');
+      return null;
+    }
+
     const insertData = {
       url: imageData.url,
       title: imageData.title,

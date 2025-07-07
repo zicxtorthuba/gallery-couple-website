@@ -144,6 +144,19 @@ export const recordFileUpload = async (
       return true; // Return true to not block the upload
     }
 
+    // Check if this URL is already recorded to prevent duplicates
+    const { data: existingUpload } = await supabase
+      .from('user_uploads')
+      .select('id')
+      .eq('url', url)
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingUpload) {
+      console.log('Upload already recorded, skipping duplicate entry');
+      return true;
+    }
+
     const { error } = await supabase
       .from('user_uploads')
       .insert({
