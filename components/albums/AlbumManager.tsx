@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { StorageIndicator } from '@/components/ui/storage-indicator';
+import { MultipleImageUpload } from './MultipleImageUpload';
 import { 
   Plus, 
   Upload, 
@@ -49,30 +50,20 @@ import {
 export function AlbumManager() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState<string | null>(null);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Album | null>(null);
-  const [selectedAlbum, setSelectedAlbum] = useState<string>('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [user, setUser] = useState<any>(null);
   const { edgestore } = useEdgeStore();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [albumData, setAlbumData] = useState({
     name: '',
     description: '',
     isPublic: true
-  });
-  
-  const [uploadData, setUploadData] = useState({
-    files: [] as File[],
-    titles: [] as string[],
-    descriptions: [] as string[],
-    category: 'album',
-    tags: ''
   });
 
   useEffect(() => {
@@ -345,12 +336,12 @@ export function AlbumManager() {
               Tạo Album
             </Button>
             <Button 
-              onClick={() => setShowUploadDialog(true)}
+              onClick={() => setShowUploadDialog('select')}
               variant="outline"
               disabled={albums.length === 0}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Tải ảnh vào Album
+              Tải nhiều ảnh vào Album
             </Button>
           </div>
         </div>
@@ -408,6 +399,15 @@ export function AlbumManager() {
                     <Button size="sm" variant="outline" className="flex-1">
                       <Eye className="h-3 w-3 mr-1" />
                       Xem
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setShowUploadDialog(album.id)}
+                      className="mr-2"
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Thêm ảnh
                     </Button>
                     <Button 
                       size="sm" 
@@ -580,136 +580,63 @@ export function AlbumManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Upload to Album Dialog */}
-      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm">
+      {/* Album Selection Dialog */}
+      <Dialog open={showUploadDialog === 'select'} onOpenChange={() => setShowUploadDialog(null)}>
+        <DialogContent className="max-w-md bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5" />
-              Tải ảnh vào Album
+              Chọn Album để tải ảnh
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-6">
-            {/* File Size Limit Info */}
-            <Alert className="border-blue-200 bg-blue-50">
-              <FileImage className="h-4 w-4 text-blue-500" />
-              <AlertDescription className="text-blue-700">
-                <strong>Giới hạn:</strong> Tối đa {formatBytes(MAX_FILE_SIZE)} mỗi ảnh
-              </AlertDescription>
-            </Alert>
-
-            {/* Album Selection */}
-            <div>
-              <Label htmlFor="select-album">Chọn Album *</Label>
-              <select
-                id="select-album"
-                value={selectedAlbum}
-                onChange={(e) => setSelectedAlbum(e.target.value)}
-                className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#93E1D8] focus:border-transparent"
-              >
-                <option value="">Chọn album...</option>
-                {albums.map(album => (
-                  <option key={album.id} value={album.id}>
-                    {album.name} ({album.imageCount} ảnh)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* File Selection */}
-            <div>
-              <Label htmlFor="upload-files">Chọn ảnh</Label>
-              <input
-                ref={fileInputRef}
-                id="upload-files"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="w-full mt-1 p-2 border rounded-md"
-              />
-            </div>
-
-            {/* Selected Files */}
-            {uploadData.files.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="font-medium">Ảnh đã chọn ({uploadData.files.length})</h3>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {uploadData.files.map((file, index) => (
-                    <div key={index} className="flex gap-4 p-4 border rounded-lg">
-                      <div className="relative w-20 h-20 flex-shrink-0">
-                        <Image
-                          src={URL.createObjectURL(file)}
-                          alt={file.name}
-                          fill
-                          className="object-cover rounded"
-                        />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <Input
-                          value={uploadData.titles[index]}
-                          onChange={(e) => updateImageTitle(index, e.target.value)}
-                          placeholder="Tiêu đề ảnh..."
-                          className="text-sm"
-                        />
-                        <Input
-                          value={uploadData.descriptions[index]}
-                          onChange={(e) => updateImageDescription(index, e.target.value)}
-                          placeholder="Mô tả ảnh..."
-                          className="text-sm"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {formatBytes(file.size)}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => removeFile(index)}
-                        className="text-red-500 hover:bg-red-50"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Common Tags */}
-                <div>
-                  <Label htmlFor="upload-tags">Thẻ chung (phân cách bằng dấu phẩy)</Label>
-                  <Input
-                    id="upload-tags"
-                    value={uploadData.tags}
-                    onChange={(e) => setUploadData(prev => ({ ...prev, tags: e.target.value }))}
-                    placeholder="ví dụ: album, memories, family"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            )}
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              Chọn album mà bạn muốn thêm ảnh vào:
+            </p>
             
-            <div className="flex gap-2 pt-4">
-              <Button 
-                onClick={handleUploadToAlbum}
-                disabled={!selectedAlbum || uploadData.files.length === 0 || uploading}
-                className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploading ? 'Đang tải...' : `Tải lên ${uploadData.files.length} ảnh`}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowUploadDialog(false)}
-                className="flex-1"
-                disabled={uploading}
-              >
-                Hủy
-              </Button>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {albums.map(album => (
+                <Button
+                  key={album.id}
+                  variant="outline"
+                  className="w-full justify-start h-auto p-4"
+                  onClick={() => setShowUploadDialog(album.id)}
+                >
+                  <div className="text-left">
+                    <div className="font-medium">{album.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {album.imageCount} ảnh • {album.isPublic ? 'Công khai' : 'Riêng tư'}
+                    </div>
+                  </div>
+                </Button>
+              ))}
             </div>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => setShowUploadDialog(null)}
+              className="w-full"
+            >
+              Hủy
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Multiple Image Upload Dialog */}
+      {showUploadDialog && showUploadDialog !== 'select' && (
+        <MultipleImageUpload
+          isOpen={true}
+          onClose={() => setShowUploadDialog(null)}
+          albumId={showUploadDialog}
+          albumName={albums.find(a => a.id === showUploadDialog)?.name || ''}
+          onUploadComplete={() => {
+            loadAlbums();
+            setShowUploadDialog(null);
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>

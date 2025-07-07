@@ -22,7 +22,7 @@ export interface ImageUpload {
 
 // Constants
 export const STORAGE_LIMIT = 1024 * 1024 * 1024; // 1GB in bytes
-export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 
 // Format bytes to human readable
 export const formatBytes = (bytes: number): string => {
