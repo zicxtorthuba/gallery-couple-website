@@ -66,6 +66,25 @@ export function AlbumManager() {
     isPublic: true
   });
 
+  // Upload data state for selected files, titles, descriptions, etc.
+  type UploadData = {
+    files: File[];
+    titles: string[];
+    descriptions: string[];
+    category: string;
+    tags: string;
+  };
+  const [uploadData, setUploadData] = useState<UploadData>({
+    files: [],
+    titles: [],
+    descriptions: [],
+    category: 'album',
+    tags: ''
+  });
+
+  // Selected album for upload
+  const [selectedAlbum, setSelectedAlbum] = useState<string>('');
+
   useEffect(() => {
     loadAlbums();
     loadUser();
@@ -252,7 +271,7 @@ export function AlbumManager() {
             tags: ''
           });
           setSelectedAlbum('');
-          setShowUploadDialog(false);
+          setShowUploadDialog(null);
           setMessage(`Đã tải lên ${uploadedImageIds.length} ảnh vào album!`);
           setTimeout(() => setMessage(''), 3000);
         }
