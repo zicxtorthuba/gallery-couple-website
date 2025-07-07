@@ -939,22 +939,10 @@ function GalleryContent() {
                       size="sm" 
                       variant="outline"
                       onClick={() => handleDownload(selectedImage.url, selectedImage.title)}
-                      className="gap-2"
                     >
                       <Download className="h-4 w-4" />
                       Tải về
                     </Button>
-                    {currentUser && currentUser.id === selectedImage.authorId && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => setDeleteConfirmStep({ image: selectedImage, step: 1 })}
-                        className="text-red-500 hover:bg-red-50"
-                        disabled={!currentUser || loading}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
                   </div>
                 </DialogTitle>
               </DialogHeader>
