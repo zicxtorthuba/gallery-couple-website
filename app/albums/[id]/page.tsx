@@ -92,6 +92,22 @@ export default function AlbumViewPage() {
     }
   };
 
+  const handleRemoveFromAlbum = async (imageId: string) => {
+    if (!album) return;
+    
+    try {
+      // Import the function dynamically to avoid circular imports
+      const { removeImageFromAlbum } = await import('@/lib/albums-supabase');
+      const success = await removeImageFromAlbum(album.id, imageId);
+      
+      if (success) {
+        // Reload album to reflect changes
+        await loadAlbum();
+      }
+    } catch (error) {
+      console.error('Error removing image from album:', error);
+    }
+  };
   const isOwner = user && album && user.id === album.authorId;
 
   if (loading) {
@@ -288,7 +304,7 @@ export default function AlbumViewPage() {
                             size="sm"
                             variant="secondary"
                             onClick={() => setDeleteConfirmStep({ image, step: 1 })}
-                            className="bg-white/90 hover:bg-white text-red-500 hover:text-red-600 ml-6"
+                            className="bg-white/90 hover:bg-white text-red-500 hover:text-red-600"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -496,9 +512,8 @@ export default function AlbumViewPage() {
                     <Button 
                       variant="destructive" 
                       onClick={() => {
-                        // Handle remove from album logic here
+                        handleRemoveFromAlbum(deleteConfirmStep.image.id);
                         setDeleteConfirmStep(null);
-                        loadAlbum();
                       }}
                       className="px-6 bg-red-600 hover:bg-red-700 text-white"
                     >

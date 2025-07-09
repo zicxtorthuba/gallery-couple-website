@@ -382,7 +382,15 @@ export function AlbumManager() {
               disabled={albums.length === 0}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Tải nhiều ảnh vào Album
+              Tải ảnh mới vào Album
+            </Button>
+            <Button 
+              onClick={() => setShowGallerySelector('select')}
+              variant="outline"
+              disabled={albums.length === 0}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm từ thư viện
             </Button>
           </div>
         </div>
@@ -560,7 +568,7 @@ export function AlbumManager() {
                 className="flex-1"
               >
                 Hủy
-                Tải ảnh mới vào Album
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -636,13 +644,13 @@ export function AlbumManager() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5" />
-              Chọn Album để tải ảnh
+              Chọn Album để tải ảnh mới
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
             <p className="text-muted-foreground">
-              Chọn album mà bạn muốn thêm ảnh vào:
+              Chọn album mà bạn muốn tải ảnh mới vào:
             </p>
             
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -666,6 +674,50 @@ export function AlbumManager() {
             <Button 
               variant="outline" 
               onClick={() => setShowUploadDialog(null)}
+              className="w-full"
+            >
+              Hủy
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Gallery Selection Dialog */}
+      <Dialog open={showGallerySelector === 'select'} onOpenChange={() => setShowGallerySelector(null)}>
+        <DialogContent className="max-w-md bg-white/95 backdrop-blur-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Chọn Album để thêm ảnh từ thư viện
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              Chọn album mà bạn muốn thêm ảnh từ thư viện vào:
+            </p>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {albums.map(album => (
+                <Button
+                  key={album.id}
+                  variant="outline"
+                  className="w-full justify-start h-auto p-4"
+                  onClick={() => setShowGallerySelector(album.id)}
+                >
+                  <div className="text-left">
+                    <div className="font-medium">{album.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {album.imageCount} ảnh • {album.isPublic ? 'Công khai' : 'Riêng tư'}
+                    </div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => setShowGallerySelector(null)}
               className="w-full"
             >
               Hủy
