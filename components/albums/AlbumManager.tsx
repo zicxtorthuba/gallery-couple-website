@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { StorageIndicator } from '@/components/ui/storage-indicator';
 import { MultipleImageUpload } from './MultipleImageUpload';
+import { GalleryImageSelector } from './GalleryImageSelector';
 import { 
   Plus, 
   Upload, 
@@ -46,11 +47,13 @@ import {
   MAX_FILE_SIZE,
   type StorageInfo
 } from '@/lib/storage';
+import { type GalleryImage } from '@/lib/gallery-supabase';
 
 export function AlbumManager() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState<string | null>(null);
+  const [showGallerySelector, setShowGallerySelector] = useState<string | null>(null);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Album | null>(null);
   const [message, setMessage] = useState('');
@@ -128,6 +131,25 @@ export function AlbumManager() {
     }
   };
 
+  const handleSelectGalleryImages = async (albumId: string, selectedImages: GalleryImage[]) => {
+    if (selectedImages.length === 0) return;
+
+    try {
+      const imageIds = selectedImages.map(img => img.id);
+      const success = await addImagesToAlbum(albumId, imageIds);
+      
+      if (success) {
+        await loadAlbums();
+        setMessage(`Đã thêm ${selectedImages.length} ảnh vào album!`);
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi thêm ảnh vào album');
+      }
+    } catch (error) {
+      console.error('Error adding gallery images to album:', error);
+      setMessage('Có lỗi xảy ra khi thêm ảnh vào album');
+    }
+  };
   const handleEditAlbum = (album: Album) => {
     setEditingAlbum(album);
     setAlbumData({
@@ -422,11 +444,20 @@ export function AlbumManager() {
                     <Button 
                       size="sm" 
                       variant="outline"
+                      onClick={() => setShowGallerySelector(album.id)}
+                      className="mr-2"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Từ thư viện
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
                       onClick={() => setShowUploadDialog(album.id)}
                       className="mr-2"
                     >
                       <Upload className="h-3 w-3 mr-1" />
-                      Thêm ảnh
+                      Tải lên
                     </Button>
                     <Button 
                       size="sm" 
@@ -529,7 +560,7 @@ export function AlbumManager() {
                 className="flex-1"
               >
                 Hủy
-              </Button>
+                Tải ảnh mới vào Album
             </div>
           </div>
         </DialogContent>
@@ -657,6 +688,17 @@ export function AlbumManager() {
         />
       )}
 
+      {/* Gallery Image Selector Dialog */}
+      {showGallerySelector && (
+        <GalleryImageSelector
+          isOpen={true}
+          onClose={() => setShowGallerySelector(null)}
+          onSelect={(selectedImages) => {
+            handleSelectGalleryImages(showGallerySelector, selectedImages);
+            setShowGallerySelector(null);
+          }}
+        />
+      )}
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <DialogContent className="bg-white/95 backdrop-blur-sm">
