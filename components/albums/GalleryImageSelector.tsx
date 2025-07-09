@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,14 +36,16 @@ export function GalleryImageSelector({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpen.current) {
       loadImages();
       // Pre-select images if provided
       const preSelectedIds = new Set(preSelectedImages.map(img => img.id));
       setSelectedImages(preSelectedIds);
     }
+    wasOpen.current = isOpen;
   }, [isOpen, preSelectedImages]);
 
   useEffect(() => {
