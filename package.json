@@ -57,6 +57,7 @@
     "motion": "^12.19.2",
     "next": "^15.3.3",
     "next-auth": "^5.0.0-beta.29",
+    "next-cloudinary": "^6.16.0",
     "next-themes": "^0.3.0",
     "ogl": "^1.0.6",
     "postcss": "8.4.30",
