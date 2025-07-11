@@ -192,39 +192,6 @@ function ProfileContent() {
               </div>
             </div>
           </div>
-
-          {/* Storage Info */}
-          {storageInfo && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Dung lượng lưu trữ
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Đã sử dụng: {formatBytes(storageInfo.used)}</span>
-                    <span>Còn lại: {formatBytes(storageInfo.remaining)}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(storageInfo.percentage, 100)}%`,
-                        backgroundColor: getStorageColor(storageInfo.percentage)
-                      }}
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {storageInfo.percentage.toFixed(1)}% của {formatBytes(storageInfo.limit)}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">

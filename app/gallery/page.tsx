@@ -501,10 +501,6 @@ function GalleryContent() {
 
             <TabsContent value="images">
           {/* Storage Indicator */}
-          <StorageIndicator 
-            className="mb-6"
-            onStorageUpdate={setStorageInfo}
-          />
 
           {/* Success/Error Messages */}
           {message && (
