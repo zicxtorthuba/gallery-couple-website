@@ -6,11 +6,10 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
-  Search, 
-  Images, 
-  Eye, 
-  Calendar, 
+import {
+  Search,
+  Images,
+  Calendar,
   User,
   Lock,
   Globe,
@@ -21,9 +20,10 @@ import {
 import { getAlbums, type Album } from '@/lib/albums-supabase';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { AuthGuard } from '@/components/AuthGuard';
 import { getCurrentUser } from '@/lib/auth';
 
-export default function AlbumsPage() {
+function AlbumsContent() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [filteredAlbums, setFilteredAlbums] = useState<Album[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,7 +96,7 @@ export default function AlbumsPage() {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      
+
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4 max-w-6xl">
           {/* Header */}
@@ -215,7 +215,7 @@ export default function AlbumsPage() {
                         <h3 className="font-cormorant text-xl font-medium group-hover:text-[#93E1D8] transition-colors line-clamp-1 mb-2">
                           {album.name}
                         </h3>
-                        
+
                         {album.description && (
                           <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
                             {album.description}
@@ -286,7 +286,7 @@ export default function AlbumsPage() {
                               )}
                             </Badge>
                           </div>
-                          
+
                           {album.description && (
                             <p className="text-muted-foreground text-sm line-clamp-2 mb-3">
                               {album.description}
@@ -349,5 +349,13 @@ export default function AlbumsPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function AlbumsPage() {
+  return (
+    <AuthGuard>
+      <AlbumsContent />
+    </AuthGuard>
   );
 }
