@@ -37,7 +37,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AlbumManager } from '@/components/albums/AlbumManager';
-import { CldUploadButton } from 'next-cloudinary';
+import { CldUploadWidget } from 'next-cloudinary';
 import { 
   isCloudinaryUrl, 
   getOptimizedImageUrl,
@@ -591,7 +591,7 @@ function GalleryContent() {
                     />
                   </div>
                   
-                  {/* Cloudinary Upload Button */}
+                  {/* Cloudinary Upload Widget */}
                   <div className="pt-4">
                     {!uploadData.title || loading ? (
                       <Button
@@ -602,7 +602,7 @@ function GalleryContent() {
                         {loading ? 'Đang tải...' : 'Vui lòng nhập tiêu đề trước'}
                       </Button>
                     ) : (
-                      <CldUploadButton
+                      <CldUploadWidget
                         uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
                         onSuccess={handleCloudinaryUpload}
                         options={{
@@ -611,13 +611,22 @@ function GalleryContent() {
                           context: {
                             title: uploadData.title,
                             description: uploadData.description
-                          }
+                          },
+                          multiple: false,
+                          maxFiles: 1,
+                          resourceType: "image"
                         }}
-                        className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium"
                       >
-                        <Camera className="h-4 w-4 mr-2 inline" />
-                        Chọn và tải ảnh lên
-                      </CldUploadButton>
+                        {({ open }) => (
+                          <Button
+                            onClick={() => open()}
+                            className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium"
+                          >
+                            <Camera className="h-4 w-4 mr-2" />
+                            Chọn và tải ảnh lên
+                          </Button>
+                        )}
+                      </CldUploadWidget>
                     )}
                   </div>
                   

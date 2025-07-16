@@ -28,7 +28,7 @@ import {
   AlertCircle,
   FileImage
 } from 'lucide-react';
-import { CldUploadButton } from 'next-cloudinary';
+import { CldUploadWidget } from 'next-cloudinary';
 import { 
   isCloudinaryUrl, 
   getOptimizedImageUrl
@@ -538,7 +538,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                   {isUploading ? 'Đang tải...' : 'Hết dung lượng'}
                 </Button>
               ) : (
-                <CldUploadButton
+                <CldUploadWidget
                   uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
                   onSuccess={handleCloudinaryUpload}
                   options={{
@@ -547,13 +547,22 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                     context: {
                       title: formData.title || "Blog Featured Image",
                       postId: post?.id || "new"
-                    }
+                    },
+                    multiple: false,
+                    maxFiles: 1,
+                    resourceType: "image"
                   }}
-                  className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium"
                 >
-                  <Upload className="h-4 w-4 mr-2 inline" />
-                  Tải ảnh đại diện
-                </CldUploadButton>
+                  {({ open }) => (
+                    <Button
+                      onClick={() => open()}
+                      className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Tải ảnh đại diện
+                    </Button>
+                  )}
+                </CldUploadWidget>
               )}
             </CardContent>
           </Card>
