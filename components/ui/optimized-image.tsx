@@ -77,10 +77,8 @@ export function OptimizedImage({
     setError('Failed to load image');
   };
 
-  // Generate srcSet for responsive images
-  const srcSet = responsiveUrls 
-    ? `${responsiveUrls.mobile} 480w, ${responsiveUrls.tablet} 768w, ${responsiveUrls.desktop} 1200w`
-    : undefined;
+  // Note: Next.js Image component handles responsive images automatically
+  // using the 'sizes' prop and its built-in optimization
 
   return (
     <div className="relative">
@@ -104,7 +102,6 @@ export function OptimizedImage({
         width={!fill ? width : undefined}
         height={!fill ? height : undefined}
         sizes={sizes || (responsiveUrls ? "(max-width: 480px) 480px, (max-width: 768px) 768px, 1200px" : undefined)}
-        srcSet={srcSet}
         priority={priority}
         quality={quality}
         placeholder={placeholder}
