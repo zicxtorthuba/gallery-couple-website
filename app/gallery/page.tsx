@@ -603,27 +603,42 @@ function GalleryContent() {
                       </Button>
                     ) : (
                       <CldUploadWidget
-                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                        uploadPreset="ml_default"
                         onSuccess={handleCloudinaryUpload}
+                        onError={(error) => {
+                          console.error('Upload error:', error);
+                          setMessage('Lỗi khi tải ảnh lên. Vui lòng thử lại.');
+                          setTimeout(() => setMessage(''), 5000);
+                        }}
                         options={{
-                          folder: "gallery",
-                          tags: ["gallery", uploadData.category || "uncategorized"],
-                          context: {
-                            title: uploadData.title,
-                            description: uploadData.description
-                          },
+                          sources: ['local'],
                           multiple: false,
                           maxFiles: 1,
-                          resourceType: "image"
+                          resourceType: 'image',
+                          folder: 'gallery',
+                          tags: ['gallery', uploadData.category || 'uncategorized'],
+                          context: `title=${uploadData.title}|description=${uploadData.description || ''}`,
+                          clientAllowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+                          maxFileSize: 10000000,
+                          cropping: false,
+                          showAdvancedOptions: false,
+                          showCompletedButton: true,
+                          showUploadMoreButton: false,
+                          theme: 'white'
                         }}
                       >
-                        {({ open }) => (
+                        {({ open, isLoading }) => (
                           <Button
-                            onClick={() => open()}
+                            onClick={() => {
+                              console.log('Opening upload widget with preset: ml_default');
+                              console.log('Cloud name:', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME);
+                              open();
+                            }}
+                            disabled={isLoading}
                             className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium"
                           >
                             <Camera className="h-4 w-4 mr-2" />
-                            Chọn và tải ảnh lên
+                            {isLoading ? 'Đang mở...' : 'Chọn và tải ảnh lên'}
                           </Button>
                         )}
                       </CldUploadWidget>
