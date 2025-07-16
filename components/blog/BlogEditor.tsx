@@ -538,10 +538,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                   context: {
                     title: formData.title || "Blog Featured Image",
                     postId: post?.id || "new"
-                  },
-                  transformation: [
-                    { width: 1000, crop: "scale", quality: "auto:good", fetch_format: "auto" }
-                  ]
+                  }
                 }}
                 className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium disabled:opacity-70"
                 disabled={isUploading || storageInfo?.remaining === 0}

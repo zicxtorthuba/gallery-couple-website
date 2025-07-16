@@ -602,10 +602,7 @@ function GalleryContent() {
                         context: {
                           title: uploadData.title,
                           description: uploadData.description
-                        },
-                        transformation: [
-                          { width: 800, crop: "scale", quality: "auto:good", fetch_format: "auto" }
-                        ]
+                        }
                       }}
                       className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium disabled:opacity-70"
                       disabled={!uploadData.title || loading}
