@@ -157,8 +157,11 @@ export const getOptimizedImageUrl = (
   
   if (preset === 'custom' && customTransformations) {
     transformations = customTransformations;
-  } else {
+  } else if (preset !== 'custom') {
     transformations = OPTIMIZATION_PRESETS[preset] || OPTIMIZATION_PRESETS.gallery;
+  } else {
+    // Fallback for custom preset without transformations
+    transformations = OPTIMIZATION_PRESETS.gallery;
   }
 
   // Build transformation string
