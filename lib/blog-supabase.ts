@@ -307,15 +307,25 @@ export const deleteBlogPost = async (postId: string): Promise<boolean> => {
       return false;
     }
 
-    // If the post had a featured image from EdgeStore, try to delete it
-    if (post?.featuredImage && (post.featuredImage.includes('edgestore') || post.featuredImage.includes('files.edgestore.dev'))) {
+    // If the post had a featured image from Cloudinary, try to delete it
+    if (post?.featuredImage && post.featuredImage.includes('cloudinary.com')) {
       try {
-        // Import EdgeStore client dynamically to avoid SSR issues
-        const { useEdgeStore } = await import('@/lib/edgestore');
-        // Note: This won't work in server context, but we'll handle it gracefully
-        console.log('Featured image found, should be deleted manually from EdgeStore:', post.featuredImage);
-      } catch (edgeStoreError) {
-        console.warn('Could not delete featured image from EdgeStore:', edgeStoreError);
+        // Call our API route to delete from Cloudinary
+        const response = await fetch('/api/cloudinary/delete', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: post.featuredImage }),
+        });
+
+        if (!response.ok) {
+          console.warn('Failed to delete featured image from Cloudinary');
+        } else {
+          console.log('Successfully deleted featured image from Cloudinary');
+        }
+      } catch (cloudinaryError) {
+        console.warn('Could not delete featured image from Cloudinary:', cloudinaryError);
         // Don't fail the entire operation if image deletion fails
       }
     }

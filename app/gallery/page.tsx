@@ -37,7 +37,12 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AlbumManager } from '@/components/albums/AlbumManager';
-import { useEdgeStore } from '@/lib/edgestore';
+import { CldUploadButton } from 'next-cloudinary';
+import { 
+  isCloudinaryUrl, 
+  getOptimizedImageUrl,
+  getResponsiveImageUrls
+} from '@/lib/cloudinary';
 import { 
   isFileSizeValid, 
   hasStorageSpace, 
@@ -79,7 +84,6 @@ function GalleryContent() {
   const [categories, setCategories] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const { edgestore } = useEdgeStore();
   
   const [uploadData, setUploadData] = useState({
     title: '',
@@ -289,34 +293,21 @@ function GalleryContent() {
     return null;
   };
 
-  const handleUpload = async () => {
-    if (!uploadData.file || !uploadData.title) return;
-
-    const validationError = await validateFile(uploadData.file);
-    if (validationError) {
-      setMessage(validationError);
-      setTimeout(() => setMessage(''), 5000);
+  const handleCloudinaryUpload = async (result: any) => {
+    if (!uploadData.title) {
+      setMessage('Vui lòng nhập tiêu đề trước khi tải ảnh');
+      setTimeout(() => setMessage(''), 3000);
       return;
     }
 
     try {
       setLoading(true);
 
-      // Upload to EdgeStore
-      const res = await edgestore.images.upload({
-        file: uploadData.file,
-        onProgressChange: (progress: number) => {
-          if (progress === 100) {
-            setLoading(false);
-          }
-        },
-      });
-
       // Record in storage tracking
       const recorded = await recordFileUpload(
-        res.url,
-        uploadData.file.name,
-        uploadData.file.size,
+        result.info.secure_url,
+        result.info.original_filename,
+        result.info.bytes,
         'gallery'
       );
 
@@ -326,12 +317,12 @@ function GalleryContent() {
 
       // Create gallery image in database
       const newImage = await createGalleryImage({
-        url: res.url,
+        url: result.info.secure_url,
         title: uploadData.title,
         description: uploadData.description,
         category: uploadData.category || 'uncategorized',
         tags: uploadData.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-        size: uploadData.file.size
+        size: result.info.bytes
       });
 
       if (newImage) {
@@ -406,16 +397,26 @@ function GalleryContent() {
     try {
       setLoading(true);
       
-      // Delete from EdgeStore if it's an EdgeStore URL
-      if (imageToDelete.url.includes('edgestore') || imageToDelete.url.includes('files.edgestore.dev')) {
+      // Delete from Cloudinary if it's a Cloudinary URL
+      if (isCloudinaryUrl(imageToDelete.url)) {
         try {
-          console.log('Attempting to delete from EdgeStore:', imageToDelete.url);
-          await edgestore.images.delete({
-            url: imageToDelete.url,
+          console.log('Attempting to delete from Cloudinary:', imageToDelete.url);
+          const response = await fetch('/api/cloudinary/delete', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: imageToDelete.url }),
           });
-          console.log('Successfully deleted from EdgeStore');
-        } catch (edgeStoreError: any) {
-          console.warn('EdgeStore deletion failed (this is OK for external URLs):', edgeStoreError.message);
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.warn('Cloudinary deletion failed:', error.error);
+          } else {
+            console.log('Successfully deleted from Cloudinary');
+          }
+        } catch (cloudinaryError: any) {
+          console.warn('Cloudinary deletion failed (this is OK for external URLs):', cloudinaryError.message);
         }
       }
 
@@ -455,24 +456,7 @@ function GalleryContent() {
     setSelectedTags(prev => prev.filter(t => t !== tag));
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setMessage('Vui lòng chọn file ảnh hợp lệ');
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    if (!isFileSizeValid(file)) {
-      setMessage(`Kích thước file không được vượt quá ${formatBytes(MAX_FILE_SIZE)}`);
-      setTimeout(() => setMessage(''), 5000);
-      return;
-    }
-
-    setUploadData(prev => ({ ...prev, file }));
-  };
 
   const categoriesWithAll = ['all', ...categories];
 
@@ -540,25 +524,10 @@ function GalleryContent() {
                   <Alert className="border-blue-200 bg-blue-50">
                     <FileImage className="h-4 w-4 text-blue-500" />
                     <AlertDescription className="text-blue-700">
-                      <strong>Giới hạn:</strong> Tối đa {formatBytes(MAX_FILE_SIZE)} mỗi ảnh
+                      <strong>Cloudinary Upload:</strong> Tự động tối ưu hóa và nén ảnh
                     </AlertDescription>
                   </Alert>
 
-                  <div>
-                    <Label htmlFor="upload-file">Chọn ảnh</Label>
-                    <Input
-                      id="upload-file"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="mt-1"
-                    />
-                    {uploadData.file && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Kích thước: {formatBytes(uploadData.file.size)}
-                      </p>
-                    )}
-                  </div>
                   <div>
                     <Label htmlFor="upload-title">Tiêu đề *</Label>
                     <Input
@@ -621,22 +590,39 @@ function GalleryContent() {
                       className="mt-1"
                     />
                   </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button 
-                      onClick={handleUpload}
-                      disabled={!uploadData.file || !uploadData.title || loading}
-                      className="flex-1 bg-[#93E1D8] text-black hover:bg-[#7BC4B9] disabled:opacity-70"
+                  
+                  {/* Cloudinary Upload Button */}
+                  <div className="pt-4">
+                    <CldUploadButton
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                      onSuccess={handleCloudinaryUpload}
+                      options={{
+                        folder: "gallery",
+                        tags: ["gallery", uploadData.category || "uncategorized"],
+                        context: {
+                          title: uploadData.title,
+                          description: uploadData.description
+                        },
+                        transformation: [
+                          { width: 800, crop: "scale", quality: "auto:good", fetch_format: "auto" }
+                        ]
+                      }}
+                      className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium disabled:opacity-70"
+                      disabled={!uploadData.title || loading}
                     >
-                      <Camera className="h-4 w-4 mr-2" />
-                      {loading ? 'Đang tải...' : 'Tải lên'}
-                    </Button>
+                      <Camera className="h-4 w-4 mr-2 inline" />
+                      {loading ? 'Đang tải...' : 'Chọn và tải ảnh lên'}
+                    </CldUploadButton>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-2">
                     <Button 
                       variant="outline" 
                       onClick={() => setShowUploadDialog(false)}
-                      className="flex-1"
+                      className="w-full"
                       disabled={loading}
                     >
-                      Hủy
+                      Đóng
                     </Button>
                   </div>
                 </div>
@@ -725,10 +711,10 @@ function GalleryContent() {
                 >
                   <div className="relative aspect-square overflow-hidden">
                     <Image
-                      src={image.url}
+                      src={isCloudinaryUrl(image.url) ? getOptimizedImageUrl(image.url, 'gallery') : image.url}
                       alt={image.title}
                       fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                      sizes="(max-width: 640px) 480px, (max-width: 1024px) 768px, (max-width: 1280px) 400px, 300px"
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     

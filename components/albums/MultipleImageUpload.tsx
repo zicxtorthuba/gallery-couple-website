@@ -20,7 +20,7 @@ import {
   Plus,
   CloudUpload
 } from 'lucide-react';
-import { useEdgeStore } from '@/lib/edgestore';
+import { CldUploadButton } from 'next-cloudinary';
 import { createGalleryImage } from '@/lib/gallery-supabase';
 import { addImagesToAlbum } from '@/lib/albums-supabase';
 import { 
@@ -73,7 +73,6 @@ export function MultipleImageUpload({
   const [globalTags, setGlobalTags] = useState('');
   const [message, setMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { edgestore } = useEdgeStore();
 
   const validateFile = (file: File): string | null => {
     if (!ACCEPTED_TYPES.includes(file.type)) {
@@ -204,23 +203,40 @@ export function MultipleImageUpload({
             : p
         ));
 
-        // Upload to EdgeStore
-        const res = await edgestore.images.upload({
-          file: selectedFile.file,
-          onProgressChange: (progress) => {
-            setUploadProgress(prev => prev.map(p => 
-              p.fileId === selectedFile.id 
-                ? { ...p, progress }
-                : p
-            ));
-          },
-        });
+        // Upload to Cloudinary using direct API call
+        const formData = new FormData();
+        formData.append('file', selectedFile.file);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'ml_default');
+        formData.append('folder', 'albums');
+        formData.append('tags', `album,${albumName.toLowerCase().replace(/\s+/g, '-')}`);
+        formData.append('context', `title=${selectedFile.title}|description=${selectedFile.description}|albumId=${albumId}`);
+
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const res = await response.json();
+
+        // Update progress to 100%
+        setUploadProgress(prev => prev.map(p => 
+          p.fileId === selectedFile.id 
+            ? { ...p, progress: 100 }
+            : p
+        ));
 
         // Record in storage tracking
         await recordFileUpload(
-          res.url,
+          res.secure_url,
           selectedFile.file.name,
-          selectedFile.file.size,
+          res.bytes,
           'gallery'
         );
 

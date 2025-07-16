@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudinary Upload Test</title>
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+</head>
+<body>
+    <h1>Cloudinary Upload Test</h1>
+    <p>This is a simple test to verify your Cloudinary configuration is working.</p>
+    
+    <button id="upload_widget" class="cloudinary-button">
+        Upload an Image
+    </button>
+
+    <div id="result" style="margin-top: 20px;"></div>
+
+    <script type="text/javascript">
+        // Replace with your actual cloud name
+        const cloudName = 'du9fgslde'; // Your cloud name from .env.local
+        const uploadPreset = 'ml_default'; // Your upload preset
+
+        var myWidget = cloudinary.createUploadWidget({
+            cloudName: cloudName,
+            uploadPreset: uploadPreset,
+            folder: "test",
+            tags: ["test-upload"],
+            transformation: [
+                { width: 800, crop: "scale", quality: "auto:good", fetch_format: "auto" }
+            ]
+        }, (error, result) => {
+            if (!error && result && result.event === "success") {
+                console.log('Done! Here is the image info: ', result.info);
+                document.getElementById('result').innerHTML = `
+                    <h3>Upload Successful!</h3>
+                    <p><strong>URL:</strong> ${result.info.secure_url}</p>
+                    <p><strong>Size:</strong> ${(result.info.bytes / 1024).toFixed(2)} KB</p>
+                    <p><strong>Format:</strong> ${result.info.format}</p>
+                    <img src="${result.info.secure_url}" style="max-width: 300px; margin-top: 10px;" alt="Uploaded image">
+                `;
+            }
+        });
+
+        document.getElementById("upload_widget").addEventListener("click", function(){
+            myWidget.open();
+        }, false);
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .cloudinary-button {
+            background-color: #93E1D8;
+            color: black;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .cloudinary-button:hover {
+            background-color: #7BC4B9;
+        }
+    </style>
+</body>
+</html>

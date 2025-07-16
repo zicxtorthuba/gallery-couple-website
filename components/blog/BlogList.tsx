@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { BlogPost, getBlogPosts, deleteBlogPost, getBlogTags } from '@/lib/blog-supabase';
 import { getCurrentUser } from '@/lib/auth';
-import { useEdgeStore } from '@/lib/edgestore';
+import { isCloudinaryUrl } from '@/lib/cloudinary';
 
 interface BlogListProps {
   onCreatePost: () => void;
@@ -53,7 +53,6 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
   const [deleting, setDeleting] = useState(false);
   const [tags, setTags] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const { edgestore } = useEdgeStore();
   
   useEffect(() => {
     loadPosts();
@@ -151,17 +150,26 @@ export function BlogList({ onCreatePost, onEditPost }: BlogListProps) {
     try {
       setDeleting(true);
       
-      // If the post has a featured image from EdgeStore, try to delete it first
-      if (deleteConfirm.featuredImage && 
-          (deleteConfirm.featuredImage.includes('edgestore') || deleteConfirm.featuredImage.includes('files.edgestore.dev'))) {
+      // If the post has a featured image from Cloudinary, try to delete it first
+      if (deleteConfirm.featuredImage && isCloudinaryUrl(deleteConfirm.featuredImage)) {
         try {
-          console.log('Attempting to delete featured image from EdgeStore:', deleteConfirm.featuredImage);
-          await edgestore.images.delete({
-            url: deleteConfirm.featuredImage,
+          console.log('Attempting to delete featured image from Cloudinary:', deleteConfirm.featuredImage);
+          const response = await fetch('/api/cloudinary/delete', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: deleteConfirm.featuredImage }),
           });
-          console.log('Successfully deleted featured image from EdgeStore');
-        } catch (edgeStoreError: any) {
-          console.warn('EdgeStore deletion failed (continuing with post deletion):', edgeStoreError.message);
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.warn('Cloudinary deletion failed:', error.error);
+          } else {
+            console.log('Successfully deleted featured image from Cloudinary');
+          }
+        } catch (cloudinaryError: any) {
+          console.warn('Cloudinary deletion failed (continuing with post deletion):', cloudinaryError.message);
           // Don't fail the entire operation if image deletion fails
         }
       }

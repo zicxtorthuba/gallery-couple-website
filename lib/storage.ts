@@ -1,4 +1,4 @@
-// Storage management utilities for EdgeStore
+// Storage management utilities for image uploads
 import { supabase } from './supabase';
 import { getCurrentUser } from './auth';
 
