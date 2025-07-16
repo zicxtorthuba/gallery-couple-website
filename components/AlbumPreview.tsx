@@ -32,7 +32,7 @@ export function AlbumPreview() {
         <div className="text-center mb-16">
           <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Album</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Khám phá các bộ sưu tập được tổ chức theo chủ đề, từ những khoảnh khắc đặc biệt đến những kỷ niệm đáng nhớ.
+          Dễ dàng nhìn thấy, dễ dàng thương.
           </p>
         </div>
 

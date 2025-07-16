@@ -37,7 +37,7 @@ function BlogContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#7FFFD4]">
+    <div className="min-h-screen bg-[#F5F5DC]">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4 max-w-6xl">
           {viewMode === 'list' && (
@@ -48,7 +48,7 @@ function BlogContent() {
               </TabsList>
 
               <TabsContent value="posts">
-                <BlogList 
+                <BlogList
                   onCreatePost={handleCreatePost}
                   onEditPost={handleEditPost}
                 />

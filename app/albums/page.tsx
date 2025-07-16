@@ -83,7 +83,7 @@ function AlbumsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#F5F5DC]">
         <Navbar />
         <div className="pt-20 pb-16 flex justify-center items-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
@@ -94,7 +94,7 @@ function AlbumsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F5F5DC]">
       <Navbar />
 
       <div className="pt-20 pb-16">

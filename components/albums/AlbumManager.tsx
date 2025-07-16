@@ -10,15 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { StorageIndicator } from '@/components/ui/storage-indicator';
+
 import { MultipleImageUpload } from './MultipleImageUpload';
 import { GalleryImageSelector } from './GalleryImageSelector';
-import { 
-  Plus, 
-  Upload, 
-  Edit3, 
-  Trash2, 
-  Eye, 
+import {
+  Plus,
+  Upload,
+  Edit3,
+  Trash2,
+  Eye,
   ImageIcon,
   FolderPlus,
   X,
@@ -29,23 +29,20 @@ import {
   Images
 } from 'lucide-react';
 import { useEdgeStore } from '@/lib/edgestore';
-import { 
-  getAlbums, 
-  createAlbum, 
-  updateAlbum, 
-  deleteAlbum, 
+import {
+  getAlbums,
+  createAlbum,
+  updateAlbum,
+  deleteAlbum,
   addImagesToAlbum,
-  type Album 
+  type Album
 } from '@/lib/albums-supabase';
 import { createGalleryImage } from '@/lib/gallery-supabase';
 import { getCurrentUser } from '@/lib/auth';
-import { 
-  isFileSizeValid, 
-  hasStorageSpace, 
-  recordFileUpload,
+import {
+  isFileSizeValid,
   formatBytes,
-  MAX_FILE_SIZE,
-  type StorageInfo
+  MAX_FILE_SIZE
 } from '@/lib/storage';
 import { type GalleryImage } from '@/lib/gallery-supabase';
 
@@ -59,10 +56,10 @@ export function AlbumManager() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+
   const [user, setUser] = useState<any>(null);
   const { edgestore } = useEdgeStore();
-  
+
   const [albumData, setAlbumData] = useState({
     name: '',
     description: '',
@@ -137,7 +134,7 @@ export function AlbumManager() {
     try {
       const imageIds = selectedImages.map(img => img.id);
       const success = await addImagesToAlbum(albumId, imageIds);
-      
+
       if (success) {
         await loadAlbums();
         setMessage(`Đã thêm ${selectedImages.length} ảnh vào album!`);
@@ -242,12 +239,7 @@ export function AlbumManager() {
         const title = uploadData.titles[i] || file.name;
         const description = uploadData.descriptions[i];
 
-        // Check storage space
-        const hasSpace = await hasStorageSpace(file.size);
-        if (!hasSpace) {
-          setMessage(`Không đủ dung lượng cho file ${file.name}`);
-          continue;
-        }
+        // File size validation already done during selection
 
         // Upload to EdgeStore
         const res = await edgestore.images.upload({
@@ -257,13 +249,7 @@ export function AlbumManager() {
           },
         });
 
-        // Record in storage tracking
-        await recordFileUpload(
-          res.url,
-          file.name,
-          file.size,
-          'gallery'
-        );
+        // File uploaded successfully to EdgeStore
 
         // Create gallery image
         const newImage = await createGalleryImage({
@@ -339,11 +325,7 @@ export function AlbumManager() {
 
   return (
     <div className="space-y-6">
-      {/* Storage Indicator */}
-      <StorageIndicator 
-        showDetails={false}
-        onStorageUpdate={setStorageInfo}
-      />
+
 
       {/* Success/Error Messages */}
       {message && (
@@ -369,14 +351,14 @@ export function AlbumManager() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button 
+            <Button
               onClick={() => setShowCreateDialog(true)}
               className="bg-[#93E1D8] hover:bg-[#93E1D8]/90"
             >
               <FolderPlus className="h-4 w-4 mr-2" />
               Tạo Album
             </Button>
-            <Button 
+            <Button
               onClick={() => setShowUploadDialog('select')}
               variant="outline"
               disabled={albums.length === 0}
@@ -435,14 +417,14 @@ export function AlbumManager() {
                     <span>{album.imageCount} ảnh</span>
                     <span>{new Date(album.createdAt).toLocaleDateString('vi-VN')}</span>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" className="flex-1">
                       <Eye className="h-3 w-3 mr-1" />
                       Xem
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => setShowGallerySelector(album.id)}
                       className="mr-2"
@@ -450,8 +432,8 @@ export function AlbumManager() {
                       <Plus className="h-3 w-3 mr-1" />
                       Từ thư viện
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => setShowUploadDialog(album.id)}
                       className="mr-2"
@@ -459,15 +441,15 @@ export function AlbumManager() {
                       <Upload className="h-3 w-3 mr-1" />
                       Tải lên
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => handleEditAlbum(album)}
                     >
                       <Edit3 className="h-3 w-3" />
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => handleDeleteAlbum(album)}
                       className="text-red-500 hover:bg-red-50"
@@ -492,7 +474,7 @@ export function AlbumManager() {
           <p className="text-muted-foreground mb-6">
             Tạo album đầu tiên để tổ chức ảnh của bạn
           </p>
-          <Button 
+          <Button
             onClick={() => setShowCreateDialog(true)}
             className="bg-[#93E1D8] hover:bg-[#93E1D8]/90"
           >
@@ -511,7 +493,7 @@ export function AlbumManager() {
               Tạo Album mới
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="album-name">Tên album *</Label>
@@ -523,7 +505,7 @@ export function AlbumManager() {
                 className="mt-1"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="album-description">Mô tả</Label>
               <Textarea
@@ -535,7 +517,7 @@ export function AlbumManager() {
                 rows={3}
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <Label htmlFor="album-public">Công khai</Label>
               <Switch
@@ -544,9 +526,9 @@ export function AlbumManager() {
                 onCheckedChange={(checked) => setAlbumData(prev => ({ ...prev, isPublic: checked }))}
               />
             </div>
-            
+
             <div className="flex gap-2 pt-4">
-              <Button 
+              <Button
                 onClick={handleCreateAlbum}
                 disabled={!albumData.name.trim()}
                 className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
@@ -554,8 +536,8 @@ export function AlbumManager() {
                 <Save className="h-4 w-4 mr-2" />
                 Tạo Album
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setShowCreateDialog(false)}
                 className="flex-1"
               >
@@ -575,7 +557,7 @@ export function AlbumManager() {
               Chỉnh sửa Album
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="edit-album-name">Tên album *</Label>
@@ -587,7 +569,7 @@ export function AlbumManager() {
                 className="mt-1"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="edit-album-description">Mô tả</Label>
               <Textarea
@@ -599,7 +581,7 @@ export function AlbumManager() {
                 rows={3}
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <Label htmlFor="edit-album-public">Công khai</Label>
               <Switch
@@ -608,9 +590,9 @@ export function AlbumManager() {
                 onCheckedChange={(checked) => setAlbumData(prev => ({ ...prev, isPublic: checked }))}
               />
             </div>
-            
+
             <div className="flex gap-2 pt-4">
-              <Button 
+              <Button
                 onClick={handleSaveEdit}
                 disabled={!albumData.name.trim()}
                 className="flex-1 bg-[#93E1D8] hover:bg-[#93E1D8]/90"
@@ -618,8 +600,8 @@ export function AlbumManager() {
                 <Save className="h-4 w-4 mr-2" />
                 Lưu thay đổi
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setEditingAlbum(null)}
                 className="flex-1"
               >
@@ -639,12 +621,12 @@ export function AlbumManager() {
               Chọn Album để tải ảnh
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <p className="text-muted-foreground">
               Chọn album mà bạn muốn thêm ảnh vào:
             </p>
-            
+
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {albums.map(album => (
                 <Button
@@ -662,9 +644,9 @@ export function AlbumManager() {
                 </Button>
               ))}
             </div>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               onClick={() => setShowUploadDialog(null)}
               className="w-full"
             >
@@ -708,7 +690,7 @@ export function AlbumManager() {
               Xác nhận xóa Album
             </DialogTitle>
           </DialogHeader>
-          
+
           {deleteConfirm && (
             <div className="space-y-4">
               <p>
@@ -717,16 +699,16 @@ export function AlbumManager() {
               <p className="text-sm text-muted-foreground">
                 Album sẽ bị xóa nhưng các ảnh trong album vẫn được giữ lại trong thư viện.
               </p>
-              
+
               <div className="flex gap-2 justify-end">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setDeleteConfirm(null)}
                 >
                   Hủy
                 </Button>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   onClick={confirmDelete}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />

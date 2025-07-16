@@ -27,12 +27,12 @@ export function GalleryPreview() {
   };
 
   return (
-    <section id="gallery-preview" className="py-24 bg-[#DDFFF7]/20">
+    <section id="gallery-preview" className="py-24 bg-[#c4d1a0]/100">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Bộ sưu tập</h2>
+          <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Lưu dấu</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Bộ sưu tập theo chủ đề, từ những khoảnh khắc hấp dẫn đến những kỷ niệm đáng nhớ.
+            Lưu lại những điều iu dấu.
           </p>
         </div>
 

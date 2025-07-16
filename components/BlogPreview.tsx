@@ -43,9 +43,9 @@ export function BlogPreview() {
       <section className="py-24 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Blog</h2>
+            <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Lời tỏ</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Lời khuyên, những bức thư và những câu chuyện tâm sự
+            Những gì được viết ra từ trái tim đều sẽ chạm đến trái tim.
             </p>
           </div>
           <div className="flex justify-center">
@@ -60,9 +60,9 @@ export function BlogPreview() {
     <section className="py-24 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Blog</h2>
+          <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Lời tỏ</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Lời khuyên, những bức thư và những câu chuyện tâm sự
+          Những gì được viết ra từ trái tim đều sẽ chạm đến trái tim.
           </p>
         </div>
 

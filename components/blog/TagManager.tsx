@@ -139,7 +139,7 @@ export function TagManager() {
   }
 
   return (
-    <div className="min-h-screen bg-[#7FFFD4] py-8">
+    <div className="min-h-screen bg-[#F5F5DC] py-8">
       <div className="max-w-6xl mx-auto px-4 space-y-6">
       {/* Success/Error Messages */}
       {message && (
