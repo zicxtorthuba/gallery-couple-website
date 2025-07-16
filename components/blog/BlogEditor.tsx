@@ -28,11 +28,7 @@ import {
   AlertCircle,
   FileImage
 } from 'lucide-react';
-import { CldUploadWidget } from 'next-cloudinary';
-import { 
-  isCloudinaryUrl, 
-  getOptimizedImageUrl
-} from '@/lib/cloudinary';
+import { useEdgeStore } from '@/lib/edgestore';
 import { BlogPost, createBlogPost, updateBlogPost, getBlogTags, createBlogTag } from '@/lib/blog-supabase';
 import { getCurrentUser } from '@/lib/auth';
 import { 
@@ -95,6 +91,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   
+  const { edgestore } = useEdgeStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -151,36 +148,43 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
     return null;
   };
 
-  const handleCloudinaryUpload = async (result: any) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    const validationError = await validateFile(file);
+    if (validationError) {
+      setSaveMessage(validationError);
+      setTimeout(() => setSaveMessage(''), 5000);
+      return;
+    }
+
     try {
       setIsUploading(true);
       
       // If there's an existing featured image, remove it from storage tracking
-      if (formData.featuredImage && isCloudinaryUrl(formData.featuredImage)) {
+      if (formData.featuredImage && (formData.featuredImage.includes('edgestore') || formData.featuredImage.includes('files.edgestore.dev'))) {
         try {
-          const response = await fetch('/api/cloudinary/delete', {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: formData.featuredImage }),
-          });
-
-          if (!response.ok) {
-            console.warn('Failed to delete old featured image from Cloudinary');
-          }
-          
+          await edgestore.images.delete({ url: formData.featuredImage });
           await removeFileUpload(formData.featuredImage);
         } catch (error) {
           console.warn('Failed to delete old featured image:', error);
         }
       }
+
+      const res = await edgestore.images.upload({
+        file,
+        onProgressChange: (progress) => {
+          console.log('Upload progress:', progress);
+        },
+      });
       
       // Record the upload in our storage tracking
       const recorded = await recordFileUpload(
-        result.info.secure_url,
-        result.info.original_filename,
-        result.info.bytes,
+        res.url,
+        file.name,
+        file.size,
         'blog',
         post?.id
       );
@@ -189,7 +193,7 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
         console.warn('Failed to record file upload, but continuing...');
       }
       
-      setFormData(prev => ({ ...prev, featuredImage: result.info.secure_url }));
+      setFormData(prev => ({ ...prev, featuredImage: res.url }));
       setSaveMessage('Ảnh đã được tải lên thành công!');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
@@ -529,41 +533,23 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 </div>
               )}
               
-              {isUploading || storageInfo?.remaining === 0 ? (
-                <Button
-                  disabled
-                  className="w-full bg-gray-300 text-gray-500 px-4 py-2 rounded-md font-medium cursor-not-allowed"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isUploading ? 'Đang tải...' : 'Hết dung lượng'}
-                </Button>
-              ) : (
-                <CldUploadWidget
-                  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
-                  onSuccess={handleCloudinaryUpload}
-                  options={{
-                    folder: "blog",
-                    tags: ["blog", "featured-image"],
-                    context: {
-                      title: formData.title || "Blog Featured Image",
-                      postId: post?.id || "new"
-                    },
-                    multiple: false,
-                    maxFiles: 1,
-                    resourceType: "image"
-                  }}
-                >
-                  {({ open }) => (
-                    <Button
-                      onClick={() => open()}
-                      className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Tải ảnh đại diện
-                    </Button>
-                  )}
-                </CldUploadWidget>
-              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || storageInfo?.remaining === 0}
+                className="w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isUploading ? 'Đang tải...' : (storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh lên')}
+              </Button>
             </CardContent>
           </Card>
 
