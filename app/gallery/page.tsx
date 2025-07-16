@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { StorageIndicator } from '@/components/ui/storage-indicator';
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   Heart, 
@@ -40,12 +40,8 @@ import { AlbumManager } from '@/components/albums/AlbumManager';
 import { useEdgeStore } from '@/lib/edgestore';
 import { 
   isFileSizeValid, 
-  hasStorageSpace, 
-  recordFileUpload, 
-  removeFileUpload,
   formatBytes,
-  MAX_FILE_SIZE,
-  type StorageInfo
+  MAX_FILE_SIZE
 } from '@/lib/storage';
 import {
   getGalleryImages,
@@ -59,6 +55,14 @@ import {
 } from '@/lib/gallery-supabase';
 import { addToFavorites, removeFromFavorites, isFavorite } from '@/lib/favorites-supabase';
 import { getCurrentUser } from '@/lib/auth';
+import image from 'next/image';
+import image from 'next/image';
+import image from 'next/image';
+import { title } from 'process';
+import { title } from 'process';
+import image from 'next/image';
+import image from 'next/image';
+import { set } from 'zod';
 
 function GalleryContent() {
   const [images, setImages] = useState<GalleryImage[]>([]);
@@ -75,7 +79,7 @@ function GalleryContent() {
   const [loading, setLoading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [message, setMessage] = useState('');
-  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+
   const [categories, setCategories] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -282,11 +286,6 @@ function GalleryContent() {
       return `Kích thước file không được vượt quá ${formatBytes(MAX_FILE_SIZE)}`;
     }
 
-    const hasSpace = await hasStorageSpace(file.size);
-    if (!hasSpace) {
-      return 'Không đủ dung lượng lưu trữ. Vui lòng xóa một số ảnh để giải phóng không gian.';
-    }
-
     return null;
   };
 
@@ -313,362 +312,764 @@ function GalleryContent() {
         },
       });
 
-      // Record in storage tracking
-      const recorded = await recordFileUpload(
-        res.url,
-        uploadData.file.name,
-        uploadData.file.size,
-        'gallery'
-      );
-
-      if (!recorded) {
-        console.warn('Failed to record file upload, but continuing...');
-      }
-
       // Create gallery image in database
-      const newImage = await createGalleryImage({
+ryImage({
         url: res.url,
         title: uploadData.title,
-        description: uploadData.description,
-        category: uploadData.category || 'uncategorized',
-        tags: uploadData.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        description: 
+        category: uploadData.cated',
+        tags: uploadData.tags.split(',').maplean),
         size: uploadData.file.size
       });
 
-      if (newImage) {
-        // Reload images to get the latest data
-        await loadImages();
+      if 
+ata
+        await loadIma();
         await loadCategories();
         await loadTags();
 
         setUploadData({
-          title: '',
-          description: '',
-          category: '',
+ '',
+          description: 
+          category: ',
           tags: '',
           file: null,
         });
-        setShowUploadDialog(false);
-        setMessage('Ảnh đã được tải lên thành công!');
-        setTimeout(() => setMessage(''), 3000);
+        setShowUpload);
+        set!');
+        setTimeout(() => setMessage
       } else {
-        setMessage('Có lỗi xảy ra khi lưu thông tin ảnh');
+        setMessage('Có lỗi xảy ra khi lưu thông
       }
     } catch (error) {
-      console.error('Image upload failed:', error);
-      setMessage('Lỗi khi tải ảnh lên');
+      c);
+      setMessage('Lỗi;
       setTimeout(() => setMessage(''), 3000);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (image: GalleryImage) => {
-    setEditingImage(image);
+  co {
+age);
     setEditData({
       title: image.title,
-      description: image.description || '',
-      tags: image.tags.join(', ')
+      description '',
+      tags: image.tags.jo ')
     });
   };
 
-  const handleSaveEdit = async () => {
-    if (!editingImage) return;
+  co{
+rn;
 
     try {
-      const updatedImage = await updateGalleryImage(editingImage.id, {
-        title: editData.title,
+{
+        title,
         description: editData.description,
-        tags: editData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+        tags: editData.tags.spn)
       });
 
-      if (updatedImage) {
-        // Reload images to get the latest data
+      if {
+
         await loadImages();
         await loadTags();
 
-        setEditingImage(null);
-        setEditData({ title: '', description: '', tags: '' });
-        setMessage('Ảnh đã được cập nhật!');
+        setEditingImage(n
+
+        setMessage('Ảnh đã đượ
         setTimeout(() => setMessage(''), 3000);
       } else {
         setMessage('Có lỗi xảy ra khi cập nhật ảnh');
       }
     } catch (error) {
-      console.error('Error updating image:', error);
-      setMessage('Có lỗi xảy ra khi cập nhật ảnh');
+      cr);
+      setMessage('Có 
     }
   };
 
-  const handleDelete = async (imageId: string) => {
-    const imageToDelete = images.find(img => img.id === imageId);
+  co
+
     if (!imageToDelete) return;
 
     try {
-      setLoading(true);
+);
       
-      // Delete from EdgeStore if it's an EdgeStore URL
-      if (imageToDelete.url.includes('edgestore') || imageToDelete.url.includes('files.edgestore.dev')) {
+      // Delete from EdRL
+      ) {
         try {
           console.log('Attempting to delete from EdgeStore:', imageToDelete.url);
-          await edgestore.images.delete({
+          awalete({
             url: imageToDelete.url,
           });
-          console.log('Successfully deleted from EdgeStore');
-        } catch (edgeStoreError: any) {
-          console.warn('EdgeStore deletion failed (this is OK for external URLs):', edgeStoreError.message);
+          console.log('Successfullye');
+        } cat) {
+          console.warn('EdgeStore deletion failed (this is OK);
         }
       }
 
-      // Remove from storage tracking
-      await removeFileUpload(imageToDelete.url);
-
-      // Delete from database
-      const success = await deleteGalleryImage(imageId);
+      /e
+d);
       if (success) {
-        // Reload images to get the latest data
+a
         await loadImages();
         await loadCategories();
-        await loadTags();
+        await loadTa;
 
-        setSelectedImage(null);
-        setMessage('Ảnh đã được xóa!');
-        setTimeout(() => setMessage(''), 3000);
-      } else {
-        setMessage('Có lỗi xảy ra khi xóa ảnh');
+        setSelectedImage(nu
+        setMessage('Ảnh đã được');
+        setTimeout(() => 0);
+lse {
+        setMessage('Có lỗi xảy  ảnh');
       }
     } catch (error: any) {
-      console.error('Delete failed:', error);
-      setMessage(`Lỗi khi xóa ảnh: ${error.message || 'Unknown error'}`);
-      setTimeout(() => setMessage(''), 3000);
+      console., error);
+      setMessage(`Lỗi khi xóa ảnh: ${error.messa'}`);
+      s3000);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTagClick = (tag: string) => {
-    if (!selectedTags.includes(tag)) {
-      setSelectedTags(prev => [...prev, tag]);
-    }
+  const handleTagClick =g) => {
+    i
+    g]);
+
   };
 
   const removeSelectedTag = (tag: string) => {
-    setSelectedTags(prev => prev.filter(t => t !== tag));
+    s);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEve
     const file = e.target.files?.[0];
-    if (!file) return;
+    ;
 
     if (!file.type.startsWith('image/')) {
-      setMessage('Vui lòng chọn file ảnh hợp lệ');
-      setTimeout(() => setMessage(''), 3000);
-      return;
+      setMessage('Vui lòng chọn file );
+      setTimeout(() =>, 3000);
+rn;
     }
 
     if (!isFileSizeValid(file)) {
-      setMessage(`Kích thước file không được vượt quá ${formatBytes(MAX_FILE_SIZE)}`);
-      setTimeout(() => setMessage(''), 5000);
-      return;
+      setMessE)}`);
+     000);
+turn;
     }
 
-    setUploadData(prev => ({ ...prev, file }));
+    setUploadData(prev => ({ ...prev, file })
   };
 
-  const categoriesWithAll = ['all', ...categories];
+;
 
-  return (
-    <div className="min-h-screen bg-[#7FFFD4]">
+  re(
+">
       <div className="pt-20 pb-16">
-        <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="text-center mb-12 bg-white/95 backdrop-blur-sm rounded-xl p-8 shadow-lg border-white/50">
-            <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4">
+">
+          }
+          <div className="text-center mb-12 bg-/50">
+            <h1 className="font-cor">
               Thư viện & Album
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Khám phá bộ sưu tập những khoảnh khắc đẹp nhất và tạo album để tổ chức ảnh của bạn
+              Khám phá bộ sưu tập những khoảnh khắc đẹp nhất và tạo album để tổ 
             </p>
           </div>
 
           {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border-white/50">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="images">Thư viện ảnh</TabsTrigger>
+          <Tabs 
+            <div">
+ls-2">
+                <TabsTgger>
                 <TabsTrigger value="albums">Quản lý Album</TabsTrigger>
               </TabsList>
             </div>
 
             <TabsContent value="images">
-          {/* Storage Indicator */}
-          <StorageIndicator 
-            showDetails={false}
-            onStorageUpdate={setStorageInfo}
-          />
+              {/* Success
+              {mes
+`}>
+                  {message.includes('Lỗi? (
 
-          {/* Success/Error Messages */}
-          {message && (
-            <Alert className={`mb-6 ${message.includes('Lỗi') || message.includes('không được') || message.includes('Không đủ') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
-              {message.includes('Lỗi') || message.includes('không được') || message.includes('Không đủ') ? (
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-              ) : (
-                <CheckCircle className="h-4 w-4 text-green-500" />
+
+                    <CheckCircle classNa00" />
+                  )}
+                  <AlertDescription className={message.includes('Lỗi') || message.includes('không được') || message.includes('Không đủ') ? 'text-red-700' : 'text-green-700'}>
+                    {message}
+                  </AlertDescription>
+                </Aert>
               )}
-              <AlertDescription className={message.includes('Lỗi') || message.includes('không được') || message.includes('Không đủ') ? 'text-red-700' : 'text-green-700'}>
-                {message}
-              </AlertDescription>
-            </Alert>
-          )}
 
-          {/* Upload Button */}
-          <div className="flex justify-center mb-8">
-            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-              <DialogTrigger asChild>
-                <Button 
-                  className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full"
-                  disabled={storageInfo?.remaining === 0}
+              {/* Upload Button */}
+              <div classN">
+                <Dialog open={sho>
+                  <Dld>
+            on 
+
+                    >
+                      <Upload className="h-4 w-4 mr-
+                      Tải ảnh lên
+                    </Button>
+                  </Dialr>
+                  <DialogContent className="max-w-md">
+                 der>
+                      <DialogTitle className="font-co">
+                        Tải ả lên
+                      </Dle>
+                    </DialogHe
+                    <div className="space-y-4">
+                      {/* File}
+                      <Alert className="border-blue-200 bg-blue-50">
+                        <FileIm0" />
+                        <AlertDe">
+                          <stro mỗi ảnh
+                        </AlertDescription>
+                      </Alert>
+
+                      <div>
+                        <Label htmlFor="upload-file">Chọn ảnh</L
+                        <Input
+                          id="upload-file"
+                          e"
+
+                       elect}
+                          className="mt-1"
+                        />
+                        {uploadData.fi
+                          <p clasmt-1">
+                            Kích thướcze)}
+                          </p>
+                        )}
+                      
+                      <div>
+                        <Label htmlFor="upload-title">Tiêu đề *</Label>
+                        <Input
+                          itle"
+                      a.title}
+                        { 
+                       v, 
+                            title: e.target.value 
+                          }
+                          placeholder="h"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Lel>
+                        <Textarea
+                          id="upload-dription"
+                      
+                        
+                       ev, 
+                            description: e.target.value 
+                          }))}
+                          placeholder="Mô tả .."
+                          className="mt-1"
+                          rows={3}
+                        />
+                      </div>
+                      <div
+                        <Label htmlFor="upload-categoryc</Label>
+                        <Select 
+                          valuategory} 
+                      > ({ 
+                        .prev, 
+                       e 
+                          }))}
+                        >
+                          <SelectTrigger className">
+                            <SelectValue placeholder="Chọn danh mục" />
+                          </Selec
+                          <SelectContent
+                          Item>
+                     
+                            <SelectItem value="urban">>
+                            <SelectItem value="lifestyle">Lifestyle
+                            <SelectItetItem>
+                            <SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="upload-tags">Thẻ (phân cách bằng dấul>
+                        <Input
+                          id="upload-t"
+                          val
+                        v => ({ 
+                        
+                            tags: e.target.value 
+                          }))}
+                          placeholder=
+                          className="mt-1"
+                        />
+                      </div>
+                      <div className="flex ga">
+                        <B
+                          onClick={handleUpload}
+                          disabled={!uding}
+                      
+                        
+                          <Camera className="h-4 w-
+                          {llên'}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                     e)}
+                          className="flex-1"
+                          disabled={loading}
+                        >
+                          Hủy
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Filter
+              <div cla
+                <div className>
+                  <di
+                
+ut
+                      pla."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.targetue)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={selectedCategory} onValueChange={setSel>
+                    <SelectTrigger cmd:w-48">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue 
+                  igger>
+                    ntent>
+                      {categoriesWithAll.map(category => (
+                        <SelectItem key={category} value={gory}>
+                          {category === 'all' ? 'Tất gory}
+                        </SelectItem>
+                      ))}
+                    </SelectCont>
+                  </Select>
+                </div>
+
+                {/* Selected Tags*/}
+                {sele0 && (
+                  <div className
+                    <sp:</span>
+                  
+Badge 
+                        key={tag} 
+                        variant="secondar" 
+                        className="cursor-pointer ho0"
+                        onClick={() => removeSelectedTag(tag)}
+                      >
+                        {tag}
+                        <X cla
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {/* Popular Tags */}
+                {allTags.l
+                  <2">
+                    >
+              (
+dge 
+                        key={tag} 
+                        variant="outine" 
+                        className="cursor-pointer ho]"
+                        onClick={() => handleTagClick(tag)}
+                      >
+                        <
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Gallery }
+              {load
+                <div">
+              
                 >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh lên'}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="font-cormorant text-2xl font-light">
-                    Tải ảnh lên
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  {/* File Size Limit Info */}
-                  <Alert className="border-blue-200 bg-blue-50">
-                    <FileImage className="h-4 w-4 text-blue-500" />
-                    <AlertDescription className="text-blue-700">
-                      <strong>Giới hạn:</strong> Tối đa {formatBytes(MAX_FILE_SIZE)} mỗi ảnh
-                    </AlertDescription>
-                  </Alert>
-
-                  <div>
-                    <Label htmlFor="upload-file">Chọn ảnh</Label>
-                    <Input
-                      id="upload-file"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="mt-1"
-                    />
-                    {uploadData.file && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Kích thước: {formatBytes(uploadData.file.size)}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="upload-title">Tiêu đề *</Label>
-                    <Input
-                      id="upload-title"
-                      value={uploadData.title}
-                      onChange={(e) => setUploadData(prev => ({ 
-                        ...prev, 
-                        title: e.target.value 
-                      }))}
-                      placeholder="Nhập tiêu đề ảnh"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="upload-description">Mô tả</Label>
-                    <Textarea
-                      id="upload-description"
-                      value={uploadData.description}
-                      onChange={(e) => setUploadData(prev => ({ 
-                        ...prev, 
-                        description: e.target.value 
-                      }))}
-                      placeholder="Mô tả về bức ảnh..."
-                      className="mt-1"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="upload-category">Danh mục</Label>
-                    <Select 
-                      value={uploadData.category} 
-                      onValueChange={(value) => setUploadData(prev => ({ 
-                        ...prev, 
-                        category: value 
-                      }))}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Chọn danh mục" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="couples">Couples</SelectItem>
-                        <SelectItem value="nature">Nature</SelectItem>
-                        <SelectItem value="urban">Urban</SelectItem>
-                        <SelectItem value="lifestyle">Lifestyle</SelectItem>
-                        <SelectItem value="adventure">Adventure</SelectItem>
-                        <SelectItem value="uncategorized">Chưa phân loại</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="upload-tags">Thẻ (phân cách bằng dấu phẩy)</Label>
-                    <Input
-                      id="upload-tags"
-                      value={uploadData.tags}
-                      onChange={(e) => setUploadData(prev => ({ 
-                        ...prev, 
-                        tags: e.target.value 
-                      }))}
-                      placeholder="ví dụ: sunset, romance, outdoor"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button 
-                      onClick={handleUpload}
-                      disabled={!uploadData.file || !uploadData.title || loading}
-                      className="flex-1 bg-[#93E1D8] text-black hover:bg-[#7BC4B9] disabled:opacity-70"
-                    >
-                      <Camera className="h-4 w-4 mr-2" />
-                      {loading ? 'Đang tải...' : 'Tải lên'}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowUploadDialog(false)}
-                      className="flex-1"
-                      disabled={loading}
-                    >
-                      Hủy
-                    </Button>
+..
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+              ) : filteredImages.length > 0 ? 
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:gr>
+                  {filteredImages.map((image) => (
+                    <div 
+                    e.id}
+                  
+                    >
+                      <div className="relative aspect-square overflow-hidden">
+                        <Image
+                     .url}
+                          alt={iitle}
+                          fill
+                 vw, 25vw"
+                          className="object-cover transition-transform dur
+                        />
+                        
+                        {/* Overlay */}
+                        <d>
+                          <div className="flex gap-2">
+                            <Button
+                      "
+                    dary"
+                              onClie)}
+                              className="bg-white/90 hover:bg-white"
+                            >
+                              <>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                         )}
+                              className={`bg-white/90
+                                l00' : ''
+                              }`}
+                            >
+                              <Heart classNam>
+                            </Button>
+                            <Button
+                              size="sm"
+                             
+                         )}
+                              disabled={!currentUser}
+                              cla
+                               '
+                              }`}
+                            >
+                              <Star className={`h-4 w-4 ${favorite
+                            </Button>
+                            <Button
+                              size="sm"
+                             ondary"
+                         e)}
+                              className="bg-white/90 hover:bg-white"
+                            >
+                              < />
+                            </Button>
+                            {currentUser && c && (
+                              <>
+                                <Button
+                         ="sm"
+                                  variant="secondary"
+                                 }
+                                  className="bg-white/90 hover:bg-white"
+                            
+                                  <>
+                                </Butto
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                             
+                                  className="bg-white/90 hod-600"
+                                >
+                                  <
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
 
-          {/* Rest of the component continues with filters, gallery grid, etc. */}
-          {/* I'll continue with the rest if you want the complete file */}
-          
+                        {/* Favorite  */}
+                        {favoid) && (
+                          >
+                            
+                          
+   )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-4">
+                        <h3 3>
+                      && (
+                        >
+ion}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {image.tags.slice => (
+                            <Badge 
+                              key={tag} 
+                          
+                      20"
+                              onClick={() => handleTagClick(tag}
+                            >
+                              {}
+                            </Badge>
+                          ))}
+                          {image.tags.length > 2 && (
+                            <Badge variant="outline" classNamtext-xs">
+                         
+                            </Bge>
+                          )}
+                        <iv>
+                        <div className="flex item
+                          <div className="flex items-center gap-3">
+                            <div className="flex i
+                              <sn>
+                        div>
+                          -1">
+                              <Heart className="h-3 w-3" />
+                              <span>{image.likes}</span>
+                            </div>
+                          </div>
+                          <div-2">
+                            {favoriteImages.has(image.id) && (
+                              <Star className="h-3 w-3 t" />
+                            )}
+                          </div>
+                        </di
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Empty State */
+                <div cla
+                  <div
+                 o mb-6">
+                  8]" />
+               
+                    <h3 class">
+                      {searchTerm || selectedCa 0
+                        ? 'Không tìm thấy ảnh nào'
+                        : 'Chưa có ảnh nào'
+                      }
+                    </
+                    <p className="text-muted-foreground mb-6">
+                      {searchTerm || selectedCategory !== 'all' || selectedTags.length0
+                        ? 'Thử thay đổi bộ lọc'
+                        : 'Hãy bắt đầu  bạn'
+                      }
+                    <
+                    {!searchTerm && selectedCategory === '(
+                      <Button 
+                        onClick={() => setShowUploadDialog(true)}
+                        className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px--full"
+                   
+                    2" />
+                        Tải ảnh đầu tiên
+                      </Bu
+                    )}
+                  </div>
+                </d>
+              )}
+
+              {/* Loading *
+              {loa (
+                <div-8">
+                  
+            v>
+.
+                  </div>
+                </div>
+              )}
+
+              {/* Image Modal */}
+              <Dialog open={!
+                <Dia
+                  
+            4">
+r>
+                        <Dial">
+                          {selectedImage.title}
+                        </DialogTitle>
+                      </DialogHear>
+                      <div className="relat
+                        <Image
+                          src={selectedImage.url}
+                          alt={selectedImagle}
+                          fill
+                          sizes="vw"
+                          className="object-contain"
+                        />
+                      </div>
+                      {selectedImage.description && (
+                        <p/p>
+                      )}
+                      <div className="flex flex-">
+                      
+                        >
+                            {tag}
+                          </Badge>
+                    ))}
+                      </div>
+                      <div className="flex items-cen
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <sp>
+                          <div">
+                       
+                        n>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            }
+                          
+                          >
+                            <
+                            {likedImages.'Thích'}
+                          </Butto>
+                          <Button
+                            variant="outline"
+                       "
+                            onClick={() => handleFavorite(selectedImage.id)}
+                            disabled={!currentUser}
+                            cla''}
+                          >
+                            <Star classNa>
+                            {favoưu'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                       
+                            onClick={() => handleDownload(selectedImage.url, selectedImage.title)}
+                          >
+                            <Do>
+                            Tvề
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </DialogConten
+              </Dialog>
+
+              {/* Edit Ml */}
+              <Dialog 
+                
+                  <DialogHeader>
+                   
+h
+                    </Dialoge>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-title">Tiêu đề</Label>
+                      <Input
+                        id="ed
+                        value}
+                        onChange={(e) => 
+                     "
+                      />
+                    </di
+                    <div>
+                      <Label htmlFor="editLabel>
+                      <Textarea
+                        id="edit-des
+                    
+                      
+                     
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-tags">Thẻ (phân cách bằng dấu phẩy)</Label>
+                      <Input
+                        id="tags"
+                    
+                      lue }))}
+                     mt-1"
+                      />
+                    </di
+                    <div className>
+                      <Button onClick={ha>
+                        <Save className="h-4 w-4 mr-2" />
+                        Lưu
+                    on>
+                      
+                        Hủy
+                      </Button>
+                    </div>
+                  </div>
+                </DialogCon
+              </Dialog>
+
+              {/* Delete Coal */}
+              <Dialog }>
+                <Diaw-md">
+                  <DialogHeader>
+                   ed-600">
+
+                    </DialogTitle>
+                  </DialogHeader>
+                  {deleteConfirmStep && (
+                    <div clae-y-4">
+                      {deleteConfirmStep.step === 1 ? (
+                        <>
+                          <p cround">
+                            B"?
+                          </p>
+                          <div className="f
+                            <Button
+                      ive"
+                              onClick={() => setDeleteConfi
+                              className="flex-1"
+                          >
+                              Xóa
+                            </B>
+                            <Button variant="ou>
+                              Hủy
+                            </Button>
+                         div>
+                        </>
+                      ) : (
+                        <>
+                          <Al>
+                            <Aler
+                            ">
+                       
+                       ption>
+                      ert>
+                          <p className="text-muted-foreground">
+                            Nhập "XÓA" để xác nhận xóa ảnh này:
+                          </p>
+                          <Input
+                            placeholder="Nh nhận"
+                            on {
+                              if (e.target.value === 'XÓA') {
+                                handleDelete(deleteConfirmS;
+                          null);
+                            
+                            }}
+                          />
+                          <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => ">
+                              Hủy
+                           
+                          /div>
+                        >
+                      )}
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
-            <TabsContent value="albums">
-              <AlbumManager />
+            <TabsConte
+              <A
             </TabsContent>
           </Tabs>
-        </div>
+        </iv>
       </div>
-    </div>
+
   );
 }
 
-export default function GalleryPage() {
+export default fu
   return (
     <AuthGuard>
-      <Navbar />
-      <GalleryContent />
-      <Footer />
-    </AuthGuard>
+      <Navar />
+    
+ >
+uthGuard>
   );
 }
