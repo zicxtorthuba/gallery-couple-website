@@ -529,23 +529,32 @@ export function BlogEditor({ post, onSave, onCancel }: BlogEditorProps) {
                 </div>
               )}
               
-              <CldUploadButton
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
-                onSuccess={handleCloudinaryUpload}
-                options={{
-                  folder: "blog",
-                  tags: ["blog", "featured-image"],
-                  context: {
-                    title: formData.title || "Blog Featured Image",
-                    postId: post?.id || "new"
-                  }
-                }}
-                className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium disabled:opacity-70"
-                disabled={isUploading || storageInfo?.remaining === 0}
-              >
-                <Upload className="h-4 w-4 mr-2 inline" />
-                {isUploading ? 'Đang tải...' : (storageInfo?.remaining === 0 ? 'Hết dung lượng' : 'Tải ảnh đại diện')}
-              </CldUploadButton>
+              {isUploading || storageInfo?.remaining === 0 ? (
+                <Button
+                  disabled
+                  className="w-full bg-gray-300 text-gray-500 px-4 py-2 rounded-md font-medium cursor-not-allowed"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isUploading ? 'Đang tải...' : 'Hết dung lượng'}
+                </Button>
+              ) : (
+                <CldUploadButton
+                  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                  onSuccess={handleCloudinaryUpload}
+                  options={{
+                    folder: "blog",
+                    tags: ["blog", "featured-image"],
+                    context: {
+                      title: formData.title || "Blog Featured Image",
+                      postId: post?.id || "new"
+                    }
+                  }}
+                  className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium"
+                >
+                  <Upload className="h-4 w-4 mr-2 inline" />
+                  Tải ảnh đại diện
+                </CldUploadButton>
+              )}
             </CardContent>
           </Card>
 

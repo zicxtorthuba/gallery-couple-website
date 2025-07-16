@@ -593,23 +593,32 @@ function GalleryContent() {
                   
                   {/* Cloudinary Upload Button */}
                   <div className="pt-4">
-                    <CldUploadButton
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
-                      onSuccess={handleCloudinaryUpload}
-                      options={{
-                        folder: "gallery",
-                        tags: ["gallery", uploadData.category || "uncategorized"],
-                        context: {
-                          title: uploadData.title,
-                          description: uploadData.description
-                        }
-                      }}
-                      className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium disabled:opacity-70"
-                      disabled={!uploadData.title || loading}
-                    >
-                      <Camera className="h-4 w-4 mr-2 inline" />
-                      {loading ? 'Đang tải...' : 'Chọn và tải ảnh lên'}
-                    </CldUploadButton>
+                    {!uploadData.title || loading ? (
+                      <Button
+                        disabled
+                        className="w-full bg-gray-300 text-gray-500 px-4 py-2 rounded-md font-medium cursor-not-allowed"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        {loading ? 'Đang tải...' : 'Vui lòng nhập tiêu đề trước'}
+                      </Button>
+                    ) : (
+                      <CldUploadButton
+                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                        onSuccess={handleCloudinaryUpload}
+                        options={{
+                          folder: "gallery",
+                          tags: ["gallery", uploadData.category || "uncategorized"],
+                          context: {
+                            title: uploadData.title,
+                            description: uploadData.description
+                          }
+                        }}
+                        className="w-full bg-[#93E1D8] text-black hover:bg-[#7BC4B9] px-4 py-2 rounded-md font-medium"
+                      >
+                        <Camera className="h-4 w-4 mr-2 inline" />
+                        Chọn và tải ảnh lên
+                      </CldUploadButton>
+                    )}
                   </div>
                   
                   <div className="flex gap-2 pt-2">
