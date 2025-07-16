@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   Heart, 
@@ -22,7 +20,6 @@ import {
   Upload, 
   Edit3, 
   Star,
-  Plus,
   X,
   Save,
   Trash2,
@@ -55,14 +52,6 @@ import {
 } from '@/lib/gallery-supabase';
 import { addToFavorites, removeFromFavorites, isFavorite } from '@/lib/favorites-supabase';
 import { getCurrentUser } from '@/lib/auth';
-import image from 'next/image';
-import image from 'next/image';
-import image from 'next/image';
-import { title } from 'process';
-import { title } from 'process';
-import image from 'next/image';
-import image from 'next/image';
-import { set } from 'zod';
 
 function GalleryContent() {
   const [images, setImages] = useState<GalleryImage[]>([]);
@@ -147,7 +136,7 @@ function GalleryContent() {
   const loadImages = async () => {
     try {
       setLoading(true);
-      const galleryImages = await getGalleryImages(true); // Exclude album images
+      const galleryImages = await getGalleryImages(true);
       setImages(galleryImages);
     } catch (error) {
       console.error('Error loading images:', error);
@@ -216,7 +205,6 @@ function GalleryContent() {
           return newLiked;
         });
 
-        // Update local state
         setImages(prev => prev.map(img =>
           img.id === imageId
             ? { ...img, likes: isLiked ? img.likes - 1 : img.likes + 1 }
@@ -302,7 +290,6 @@ function GalleryContent() {
     try {
       setLoading(true);
 
-      // Upload to EdgeStore
       const res = await edgestore.images.upload({
         file: uploadData.file,
         onProgressChange: (progress: number) => {
@@ -312,308 +299,293 @@ function GalleryContent() {
         },
       });
 
-      // Create gallery image in database
-ryImage({
+      const newImage = await createGalleryImage({
         url: res.url,
         title: uploadData.title,
-        description: 
-        category: uploadData.cated',
-        tags: uploadData.tags.split(',').maplean),
+        description: uploadData.description,
+        category: uploadData.category || 'uncategorized',
+        tags: uploadData.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
         size: uploadData.file.size
       });
 
-      if 
-ata
-        await loadIma();
+      if (newImage) {
+        await loadImages();
         await loadCategories();
         await loadTags();
 
         setUploadData({
- '',
-          description: 
-          category: ',
+          title: '',
+          description: '',
+          category: '',
           tags: '',
           file: null,
         });
-        setShowUpload);
-        set!');
-        setTimeout(() => setMessage
+        setShowUploadDialog(false);
+        setMessage('Ảnh đã được tải lên thành công!');
+        setTimeout(() => setMessage(''), 3000);
       } else {
-        setMessage('Có lỗi xảy ra khi lưu thông
+        setMessage('Có lỗi xảy ra khi lưu thông tin ảnh');
       }
     } catch (error) {
-      c);
-      setMessage('Lỗi;
+      console.error('Image upload failed:', error);
+      setMessage('Lỗi khi tải ảnh lên');
       setTimeout(() => setMessage(''), 3000);
     } finally {
       setLoading(false);
     }
   };
 
-  co {
-age);
+  const handleEdit = (image: GalleryImage) => {
+    setEditingImage(image);
     setEditData({
       title: image.title,
-      description '',
-      tags: image.tags.jo ')
+      description: image.description || '',
+      tags: image.tags.join(', ')
     });
   };
 
-  co{
-rn;
+  const handleSaveEdit = async () => {
+    if (!editingImage) return;
 
     try {
-{
-        title,
+      const updatedImage = await updateGalleryImage(editingImage.id, {
+        title: editData.title,
         description: editData.description,
-        tags: editData.tags.spn)
+        tags: editData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
       });
 
-      if {
-
+      if (updatedImage) {
         await loadImages();
         await loadTags();
 
-        setEditingImage(n
-
-        setMessage('Ảnh đã đượ
+        setEditingImage(null);
+        setEditData({ title: '', description: '', tags: '' });
+        setMessage('Ảnh đã được cập nhật!');
         setTimeout(() => setMessage(''), 3000);
       } else {
         setMessage('Có lỗi xảy ra khi cập nhật ảnh');
       }
     } catch (error) {
-      cr);
-      setMessage('Có 
+      console.error('Error updating image:', error);
+      setMessage('Có lỗi xảy ra khi cập nhật ảnh');
     }
   };
 
-  co
-
+  const handleDelete = async (imageId: string) => {
+    const imageToDelete = images.find(img => img.id === imageId);
     if (!imageToDelete) return;
 
     try {
-);
+      setLoading(true);
       
-      // Delete from EdRL
-      ) {
+      if (imageToDelete.url.includes('edgestore') || imageToDelete.url.includes('files.edgestore.dev')) {
         try {
-          console.log('Attempting to delete from EdgeStore:', imageToDelete.url);
-          awalete({
+          await edgestore.images.delete({
             url: imageToDelete.url,
           });
-          console.log('Successfullye');
-        } cat) {
-          console.warn('EdgeStore deletion failed (this is OK);
+        } catch (edgeStoreError: any) {
+          console.warn('EdgeStore deletion failed:', edgeStoreError.message);
         }
       }
 
-      /e
-d);
+      const success = await deleteGalleryImage(imageId);
       if (success) {
-a
         await loadImages();
         await loadCategories();
-        await loadTa;
+        await loadTags();
 
-        setSelectedImage(nu
-        setMessage('Ảnh đã được');
-        setTimeout(() => 0);
-lse {
-        setMessage('Có lỗi xảy  ảnh');
+        setSelectedImage(null);
+        setMessage('Ảnh đã được xóa!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Có lỗi xảy ra khi xóa ảnh');
       }
     } catch (error: any) {
-      console., error);
-      setMessage(`Lỗi khi xóa ảnh: ${error.messa'}`);
-      s3000);
+      console.error('Delete failed:', error);
+      setMessage(`Lỗi khi xóa ảnh: ${error.message || 'Unknown error'}`);
+      setTimeout(() => setMessage(''), 3000);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTagClick =g) => {
-    i
-    g]);
-
+  const handleTagClick = (tag: string) => {
+    if (!selectedTags.includes(tag)) {
+      setSelectedTags(prev => [...prev, tag]);
+    }
   };
 
   const removeSelectedTag = (tag: string) => {
-    s);
+    setSelectedTags(prev => prev.filter(t => t !== tag));
   };
 
-  const handleFileSelect = (e: React.ChangeEve
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    ;
+    if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setMessage('Vui lòng chọn file );
-      setTimeout(() =>, 3000);
-rn;
+      setMessage('Vui lòng chọn file ảnh hợp lệ');
+      setTimeout(() => setMessage(''), 3000);
+      return;
     }
 
     if (!isFileSizeValid(file)) {
-      setMessE)}`);
-     000);
-turn;
+      setMessage(`Kích thước file không được vượt quá ${formatBytes(MAX_FILE_SIZE)}`);
+      setTimeout(() => setMessage(''), 5000);
+      return;
     }
 
-    setUploadData(prev => ({ ...prev, file })
+    setUploadData(prev => ({ ...prev, file }));
   };
 
-;
+  const categoriesWithAll = ['all', ...categories];
 
-  re(
-">
+  return (
+    <div className="min-h-screen bg-[#7FFFD4]">
       <div className="pt-20 pb-16">
-">
-          }
-          <div className="text-center mb-12 bg-/50">
-            <h1 className="font-cor">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12 bg-white/95 backdrop-blur-sm rounded-xl p-8 shadow-lg border-white/50">
+            <h1 className="font-cormorant text-4xl md:text-5xl font-light mb-4">
               Thư viện & Album
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Khám phá bộ sưu tập những khoảnh khắc đẹp nhất và tạo album để tổ 
+              Khám phá bộ sưu tập những khoảnh khắc đẹp nhất và tạo album để tổ chức ảnh của bạn
             </p>
           </div>
 
-          {/* Tabs */}
-          <Tabs 
-            <div">
-ls-2">
-                <TabsTgger>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border-white/50">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="images">Thư viện ảnh</TabsTrigger>
                 <TabsTrigger value="albums">Quản lý Album</TabsTrigger>
               </TabsList>
             </div>
 
             <TabsContent value="images">
-              {/* Success
-              {mes
-`}>
-                  {message.includes('Lỗi? (
-
-
-                    <CheckCircle classNa00" />
+              {message && (
+                <Alert className={`mb-6 ${message.includes('Lỗi') || message.includes('không được') ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
+                  {message.includes('Lỗi') || message.includes('không được') ? (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                   )}
-                  <AlertDescription className={message.includes('Lỗi') || message.includes('không được') || message.includes('Không đủ') ? 'text-red-700' : 'text-green-700'}>
+                  <AlertDescription className={message.includes('Lỗi') || message.includes('không được') ? 'text-red-700' : 'text-green-700'}>
                     {message}
                   </AlertDescription>
-                </Aert>
+                </Alert>
               )}
 
-              {/* Upload Button */}
-              <div classN">
-                <Dialog open={sho>
-                  <Dld>
-            on 
-
-                    >
-                      <Upload className="h-4 w-4 mr-
+              <div className="flex justify-center mb-8">
+                <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full">
+                      <Upload className="h-4 w-4 mr-2" />
                       Tải ảnh lên
                     </Button>
-                  </Dialr>
+                  </DialogTrigger>
                   <DialogContent className="max-w-md">
-                 der>
-                      <DialogTitle className="font-co">
-                        Tải ả lên
-                      </Dle>
-                    </DialogHe
+                    <DialogHeader>
+                      <DialogTitle className="font-cormorant text-2xl font-light">
+                        Tải ảnh lên
+                      </DialogTitle>
+                    </DialogHeader>
                     <div className="space-y-4">
-                      {/* File}
                       <Alert className="border-blue-200 bg-blue-50">
-                        <FileIm0" />
-                        <AlertDe">
-                          <stro mỗi ảnh
+                        <FileImage className="h-4 w-4 text-blue-500" />
+                        <AlertDescription className="text-blue-700">
+                          <strong>Giới hạn:</strong> Tối đa {formatBytes(MAX_FILE_SIZE)} mỗi ảnh
                         </AlertDescription>
                       </Alert>
 
                       <div>
-                        <Label htmlFor="upload-file">Chọn ảnh</L
+                        <Label htmlFor="upload-file">Chọn ảnh</Label>
                         <Input
                           id="upload-file"
-                          e"
-
-                       elect}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileSelect}
                           className="mt-1"
                         />
-                        {uploadData.fi
-                          <p clasmt-1">
-                            Kích thướcze)}
+                        {uploadData.file && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Kích thước: {formatBytes(uploadData.file.size)}
                           </p>
                         )}
-                      
+                      </div>
                       <div>
                         <Label htmlFor="upload-title">Tiêu đề *</Label>
                         <Input
-                          itle"
-                      a.title}
-                        { 
-                       v, 
+                          id="upload-title"
+                          value={uploadData.title}
+                          onChange={(e) => setUploadData(prev => ({ 
+                            ...prev, 
                             title: e.target.value 
-                          }
-                          placeholder="h"
+                          }))}
+                          placeholder="Nhập tiêu đề ảnh"
                           className="mt-1"
                         />
                       </div>
                       <div>
-                        <Lel>
+                        <Label htmlFor="upload-description">Mô tả</Label>
                         <Textarea
-                          id="upload-dription"
-                      
-                        
-                       ev, 
+                          id="upload-description"
+                          value={uploadData.description}
+                          onChange={(e) => setUploadData(prev => ({ 
+                            ...prev, 
                             description: e.target.value 
                           }))}
-                          placeholder="Mô tả .."
+                          placeholder="Mô tả về bức ảnh..."
                           className="mt-1"
                           rows={3}
                         />
                       </div>
-                      <div
-                        <Label htmlFor="upload-categoryc</Label>
+                      <div>
+                        <Label htmlFor="upload-category">Danh mục</Label>
                         <Select 
-                          valuategory} 
-                      > ({ 
-                        .prev, 
-                       e 
+                          value={uploadData.category} 
+                          onValueChange={(value) => setUploadData(prev => ({ 
+                            ...prev, 
+                            category: value 
                           }))}
                         >
-                          <SelectTrigger className">
+                          <SelectTrigger className="mt-1">
                             <SelectValue placeholder="Chọn danh mục" />
-                          </Selec
-                          <SelectContent
-                          Item>
-                     
-                            <SelectItem value="urban">>
-                            <SelectItem value="lifestyle">Lifestyle
-                            <SelectItetItem>
-                            <SelectItem>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="couples">Couples</SelectItem>
+                            <SelectItem value="nature">Nature</SelectItem>
+                            <SelectItem value="urban">Urban</SelectItem>
+                            <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                            <SelectItem value="adventure">Adventure</SelectItem>
+                            <SelectItem value="uncategorized">Chưa phân loại</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="upload-tags">Thẻ (phân cách bằng dấul>
+                        <Label htmlFor="upload-tags">Thẻ (phân cách bằng dấu phẩy)</Label>
                         <Input
-                          id="upload-t"
-                          val
-                        v => ({ 
-                        
+                          id="upload-tags"
+                          value={uploadData.tags}
+                          onChange={(e) => setUploadData(prev => ({ 
+                            ...prev, 
                             tags: e.target.value 
                           }))}
-                          placeholder=
+                          placeholder="ví dụ: sunset, romance, outdoor"
                           className="mt-1"
                         />
                       </div>
-                      <div className="flex ga">
-                        <B
+                      <div className="flex gap-2 pt-4">
+                        <Button 
                           onClick={handleUpload}
-                          disabled={!uding}
-                      
-                        
-                          <Camera className="h-4 w-
-                          {llên'}
+                          disabled={!uploadData.file || !uploadData.title || loading}
+                          className="flex-1 bg-[#93E1D8] text-black hover:bg-[#7BC4B9] disabled:opacity-70"
+                        >
+                          <Camera className="h-4 w-4 mr-2" />
+                          {loading ? 'Đang tải...' : 'Tải lên'}
                         </Button>
                         <Button 
                           variant="outline" 
-                     e)}
+                          onClick={() => setShowUploadDialog(false)}
                           className="flex-1"
                           disabled={loading}
                         >
@@ -625,63 +597,60 @@ ls-2">
                 </Dialog>
               </div>
 
-              {/* Filter
-              <div cla
-                <div className>
-                  <di
-                
-ut
-                      pla."
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border-white/50 space-y-4 mb-8">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Tìm kiếm theo tiêu đề, mô tả hoặc thẻ..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.targetue)}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
                     />
                   </div>
-                  <Select value={selectedCategory} onValueChange={setSel>
-                    <SelectTrigger cmd:w-48">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full md:w-48">
                       <Filter className="h-4 w-4 mr-2" />
-                      <SelectValue 
-                  igger>
-                    ntent>
+                      <SelectValue placeholder="Chọn danh mục" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {categoriesWithAll.map(category => (
-                        <SelectItem key={category} value={gory}>
-                          {category === 'all' ? 'Tất gory}
+                        <SelectItem key={category} value={category}>
+                          {category === 'all' ? 'Tất cả' : category}
                         </SelectItem>
                       ))}
-                    </SelectCont>
+                    </SelectContent>
                   </Select>
                 </div>
 
-                {/* Selected Tags*/}
-                {sele0 && (
-                  <div className
-                    <sp:</span>
-                  
-Badge 
+                {selectedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-sm text-muted-foreground">Lọc theo thẻ:</span>
+                    {selectedTags.map(tag => (
+                      <Badge 
                         key={tag} 
-                        variant="secondar" 
-                        className="cursor-pointer ho0"
+                        variant="secondary" 
+                        className="cursor-pointer hover:bg-red-100"
                         onClick={() => removeSelectedTag(tag)}
                       >
                         {tag}
-                        <X cla
+                        <X className="h-3 w-3 ml-1" />
                       </Badge>
                     ))}
                   </div>
                 )}
 
-                {/* Popular Tags */}
-                {allTags.l
-                  <2">
-                    >
-              (
-dge 
+                {allTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-sm text-muted-foreground">Thẻ phổ biến:</span>
+                    {allTags.slice(0, 8).map(tag => (
+                      <Badge 
                         key={tag} 
-                        variant="outine" 
-                        className="cursor-pointer ho]"
+                        variant="outline" 
+                        className="cursor-pointer hover:bg-[#93E1D8]/10 hover:border-[#93E1D8]"
                         onClick={() => handleTagClick(tag)}
                       >
-                        <
+                        <Tag className="h-3 w-3 mr-1" />
                         {tag}
                       </Badge>
                     ))}
@@ -689,364 +658,355 @@ dge
                 )}
               </div>
 
-              {/* Gallery }
-              {load
-                <div">
-              
-                >
-..
+              {loading && images.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center gap-2 text-muted-foreground">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#93E1D8]"></div>
+                    Đang tải ảnh...
                   </div>
                 </div>
-              ) : filteredImages.length > 0 ? 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:gr>
+              ) : filteredImages.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredImages.map((image) => (
                     <div 
-                    e.id}
-                  
+                      key={image.id}
+                      className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 border-white/50"
                     >
                       <div className="relative aspect-square overflow-hidden">
                         <Image
-                     .url}
-                          alt={iitle}
+                          src={image.url}
+                          alt={image.title}
                           fill
-                 vw, 25vw"
-                          className="object-cover transition-transform dur
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         
-                        {/* Overlay */}
-                        <d>
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                           <div className="flex gap-2">
                             <Button
-                      "
-                    dary"
-                              onClie)}
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setSelectedImage(image)}
                               className="bg-white/90 hover:bg-white"
                             >
-                              <>
+                              <Eye className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
                               variant="secondary"
-                         )}
-                              className={`bg-white/90
-                                l00' : ''
+                              onClick={() => handleLike(image.id)}
+                              className={`bg-white/90 hover:bg-white ${
+                                likedImages.has(image.id) ? 'text-red-500' : ''
                               }`}
                             >
-                              <Heart classNam>
+                              <Heart className={`h-4 w-4 ${likedImages.has(image.id) ? 'fill-current' : ''}`} />
                             </Button>
                             <Button
                               size="sm"
-                             
-                         )}
+                              variant="secondary"
+                              onClick={() => handleFavorite(image.id)}
                               disabled={!currentUser}
-                              cla
-                               '
+                              className={`bg-white/90 hover:bg-white ${
+                                favoriteImages.has(image.id) ? 'text-yellow-500' : ''
                               }`}
                             >
-                              <Star className={`h-4 w-4 ${favorite
+                              <Star className={`h-4 w-4 ${favoriteImages.has(image.id) ? 'fill-current' : ''}`} />
                             </Button>
                             <Button
                               size="sm"
-                             ondary"
-                         e)}
+                              variant="secondary"
+                              onClick={() => handleDownload(image.url, image.title)}
                               className="bg-white/90 hover:bg-white"
                             >
-                              < />
+                              <Download className="h-4 w-4" />
                             </Button>
-                            {currentUser && c && (
+                            {currentUser && currentUser.id === image.authorId && (
                               <>
-                                <Button
-                         ="sm"
-                                  variant="secondary"
-                                 }
-                                  className="bg-white/90 hover:bg-white"
-                            
-                                  <>
-                                </Butto
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                             
-                                  className="bg-white/90 hod-600"
+                                  onClick={() => handleEdit(image)}
+                                  className="bg-white/90 hover:bg-white"
                                 >
-                                  <
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => setDeleteConfirmStep({ image, step: 1 })}
+                                  className="bg-white/90 hover:bg-white text-red-500 hover:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </>
                             )}
                           </div>
                         </div>
 
-                        {/* Favorite  */}
-                        {favoid) && (
-                          >
-                            
-                          
-   )}
+                        {favoriteImages.has(image.id) && (
+                          <div className="absolute top-2 right-2">
+                            <Star className="h-5 w-5 text-yellow-500 fill-current" />
+                          </div>
+                        )}
                       </div>
 
-                      {/* Content */}
                       <div className="p-4">
-                        <h3 3>
-                      && (
-                        >
-ion}
+                        <h3 className="font-medium text-sm mb-1 line-clamp-1">{image.title}</h3>
+                        {image.description && (
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                            {image.description}
                           </p>
                         )}
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {image.tags.slice => (
+                          {image.tags.slice(0, 2).map(tag => (
                             <Badge 
                               key={tag} 
-                          
-                      20"
-                              onClick={() => handleTagClick(tag}
+                              variant="secondary" 
+                              className="text-xs cursor-pointer hover:bg-[#93E1D8]/20"
+                              onClick={() => handleTagClick(tag)}
                             >
-                              {}
+                              {tag}
                             </Badge>
                           ))}
                           {image.tags.length > 2 && (
-                            <Badge variant="outline" classNamtext-xs">
-                         
-                            </Bge>
+                            <Badge variant="outline" className="text-xs">
+                              +{image.tags.length - 2}
+                            </Badge>
                           )}
-                        <iv>
-                        <div className="flex item
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <div className="flex items-center gap-3">
-                            <div className="flex i
-                              <sn>
-                        div>
-                          -1">
+                            <div className="flex items-center gap-1">
+                              <span>@{image.author}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
                               <Heart className="h-3 w-3" />
                               <span>{image.likes}</span>
                             </div>
                           </div>
-                          <div-2">
+                          <div className="flex items-center gap-2">
                             {favoriteImages.has(image.id) && (
-                              <Star className="h-3 w-3 t" />
+                              <Star className="h-3 w-3 text-yellow-500 fill-current" />
                             )}
                           </div>
-                        </di
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                /* Empty State */
-                <div cla
-                  <div
-                 o mb-6">
-                  8]" />
-               
-                    <h3 class">
-                      {searchTerm || selectedCa 0
+                <div className="text-center py-16">
+                  <div className="max-w-md mx-auto bg-white/95 backdrop-blur-sm rounded-xl p-8 shadow-lg border-white/50">
+                    <div className="w-24 h-24 bg-[#93E1D8]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <ImageIcon className="h-12 w-12 text-[#93E1D8]" />
+                    </div>
+                    <h3 className="font-cormorant text-2xl font-light mb-2">
+                      {searchTerm || selectedCategory !== 'all' || selectedTags.length > 0
                         ? 'Không tìm thấy ảnh nào'
                         : 'Chưa có ảnh nào'
                       }
-                    </
+                    </h3>
                     <p className="text-muted-foreground mb-6">
-                      {searchTerm || selectedCategory !== 'all' || selectedTags.length0
-                        ? 'Thử thay đổi bộ lọc'
-                        : 'Hãy bắt đầu  bạn'
+                      {searchTerm || selectedCategory !== 'all' || selectedTags.length > 0
+                        ? 'Thử thay đổi bộ lọc để tìm thấy ảnh bạn cần'
+                        : 'Hãy bắt đầu bằng cách tải lên những bức ảnh đẹp nhất của bạn'
                       }
-                    <
-                    {!searchTerm && selectedCategory === '(
+                    </p>
+                    {!searchTerm && selectedCategory === 'all' && selectedTags.length === 0 && (
                       <Button 
                         onClick={() => setShowUploadDialog(true)}
-                        className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px--full"
-                   
-                    2" />
+                        className="bg-[#93E1D8] hover:bg-[#93E1D8]/90 text-white px-6 py-3 rounded-full"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
                         Tải ảnh đầu tiên
-                      </Bu
+                      </Button>
                     )}
-                  </div>
-                </d>
-              )}
-
-              {/* Loading *
-              {loa (
-                <div-8">
-                  
-            v>
-.
                   </div>
                 </div>
               )}
 
-              {/* Image Modal */}
-              <Dialog open={!
-                <Dia
-                  
-            4">
-r>
-                        <Dial">
+              {loading && images.length > 0 && (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center gap-2 text-muted-foreground">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#93E1D8]"></div>
+                    Đang xử lý...
+                  </div>
+                </div>
+              )}
+
+              <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-white/95 backdrop-blur-sm">
+                  {selectedImage && (
+                    <div className="space-y-4">
+                      <DialogHeader>
+                        <DialogTitle className="font-cormorant text-2xl font-light">
                           {selectedImage.title}
                         </DialogTitle>
-                      </DialogHear>
-                      <div className="relat
+                      </DialogHeader>
+                      <div className="relative aspect-video overflow-hidden rounded-lg">
                         <Image
                           src={selectedImage.url}
-                          alt={selectedImagle}
+                          alt={selectedImage.title}
                           fill
-                          sizes="vw"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                           className="object-contain"
                         />
                       </div>
                       {selectedImage.description && (
-                        <p/p>
+                        <p className="text-muted-foreground">{selectedImage.description}</p>
                       )}
-                      <div className="flex flex-">
-                      
-                        >
+                      <div className="flex flex-wrap gap-2">
+                        {selectedImage.tags.map(tag => (
+                          <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => handleTagClick(tag)}>
                             {tag}
                           </Badge>
-                    ))}
+                        ))}
                       </div>
-                      <div className="flex items-cen
+                      <div className="flex items-center justify-between pt-4 border-t">
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <sp>
-                          <div">
-                       
-                        n>
+                          <span>@{selectedImage.author}</span>
+                          <div className="flex items-center gap-1">
+                            <Heart className="h-4 w-4" />
+                            <span>{selectedImage.likes}</span>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            }
-                          
+                            onClick={() => handleLike(selectedImage.id)}
+                            className={likedImages.has(selectedImage.id) ? 'text-red-500' : ''}
                           >
-                            <
-                            {likedImages.'Thích'}
-                          </Butto>
-                          <Button
-                            variant="outline"
-                       "
-                            onClick={() => handleFavorite(selectedImage.id)}
-                            disabled={!currentUser}
-                            cla''}
-                          >
-                            <Star classNa>
-                            {favoưu'}
+                            <Heart className={`h-4 w-4 mr-1 ${likedImages.has(selectedImage.id) ? 'fill-current' : ''}`} />
+                            {likedImages.has(selectedImage.id) ? 'Đã thích' : 'Thích'}
                           </Button>
                           <Button
                             variant="outline"
-                       
+                            size="sm"
+                            onClick={() => handleFavorite(selectedImage.id)}
+                            disabled={!currentUser}
+                            className={favoriteImages.has(selectedImage.id) ? 'text-yellow-500' : ''}
+                          >
+                            <Star className={`h-4 w-4 mr-1 ${favoriteImages.has(selectedImage.id) ? 'fill-current' : ''}`} />
+                            {favoriteImages.has(selectedImage.id) ? 'Đã lưu' : 'Lưu'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleDownload(selectedImage.url, selectedImage.title)}
                           >
-                            <Do>
-                            Tvề
+                            <Download className="h-4 w-4 mr-1" />
+                            Tải về
                           </Button>
                         </div>
                       </div>
                     </div>
                   )}
-                </DialogConten
+                </DialogContent>
               </Dialog>
 
-              {/* Edit Ml */}
-              <Dialog 
-                
+              <Dialog open={!!editingImage} onOpenChange={() => setEditingImage(null)}>
+                <DialogContent className="max-w-md">
                   <DialogHeader>
-                   
-h
-                    </Dialoge>
+                    <DialogTitle className="font-cormorant text-2xl font-light">
+                      Chỉnh sửa ảnh
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="edit-title">Tiêu đề</Label>
                       <Input
-                        id="ed
-                        value}
-                        onChange={(e) => 
-                     "
+                        id="edit-title"
+                        value={editData.title}
+                        onChange={(e) => setEditData(prev => ({ ...prev, title: e.target.value }))}
+                        className="mt-1"
                       />
-                    </di
+                    </div>
                     <div>
-                      <Label htmlFor="editLabel>
+                      <Label htmlFor="edit-description">Mô tả</Label>
                       <Textarea
-                        id="edit-des
-                    
-                      
-                     
+                        id="edit-description"
+                        value={editData.description}
+                        onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                        className="mt-1"
                         rows={3}
                       />
                     </div>
                     <div>
                       <Label htmlFor="edit-tags">Thẻ (phân cách bằng dấu phẩy)</Label>
                       <Input
-                        id="tags"
-                    
-                      lue }))}
-                     mt-1"
+                        id="edit-tags"
+                        value={editData.tags}
+                        onChange={(e) => setEditData(prev => ({ ...prev, tags: e.target.value }))}
+                        className="mt-1"
                       />
-                    </di
-                    <div className>
-                      <Button onClick={ha>
+                    </div>
+                    <div className="flex gap-2 pt-4">
+                      <Button onClick={handleSaveEdit} className="flex-1 bg-[#93E1D8] text-black hover:bg-[#7BC4B9]">
                         <Save className="h-4 w-4 mr-2" />
                         Lưu
-                    on>
-                      
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditingImage(null)} className="flex-1">
                         Hủy
                       </Button>
                     </div>
                   </div>
-                </DialogCon
+                </DialogContent>
               </Dialog>
 
-              {/* Delete Coal */}
-              <Dialog }>
-                <Diaw-md">
+              <Dialog open={!!deleteConfirmStep} onOpenChange={() => setDeleteConfirmStep(null)}>
+                <DialogContent className="max-w-md">
                   <DialogHeader>
-                   ed-600">
-
+                    <DialogTitle className="font-cormorant text-2xl font-light text-red-600">
+                      Xác nhận xóa ảnh
                     </DialogTitle>
                   </DialogHeader>
                   {deleteConfirmStep && (
-                    <div clae-y-4">
+                    <div className="space-y-4">
                       {deleteConfirmStep.step === 1 ? (
                         <>
-                          <p cround">
-                            B"?
+                          <p className="text-muted-foreground">
+                            Bạn có chắc chắn muốn xóa ảnh "{deleteConfirmStep.image.title}"?
                           </p>
-                          <div className="f
+                          <div className="flex gap-2">
                             <Button
-                      ive"
-                              onClick={() => setDeleteConfi
+                              variant="destructive"
+                              onClick={() => setDeleteConfirmStep({ ...deleteConfirmStep, step: 2 })}
                               className="flex-1"
-                          >
+                            >
                               Xóa
-                            </B>
-                            <Button variant="ou>
+                            </Button>
+                            <Button variant="outline" onClick={() => setDeleteConfirmStep(null)} className="flex-1">
                               Hủy
                             </Button>
-                         div>
+                          </div>
                         </>
                       ) : (
                         <>
-                          <Al>
-                            <Aler
-                            ">
-                       
-                       ption>
-                      ert>
+                          <Alert className="border-red-200 bg-red-50">
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                            <AlertDescription className="text-red-700">
+                              <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác!
+                            </AlertDescription>
+                          </Alert>
                           <p className="text-muted-foreground">
                             Nhập "XÓA" để xác nhận xóa ảnh này:
                           </p>
                           <Input
-                            placeholder="Nh nhận"
-                            on {
+                            placeholder="Nhập XÓA để xác nhận"
+                            onChange={(e) => {
                               if (e.target.value === 'XÓA') {
-                                handleDelete(deleteConfirmS;
-                          null);
-                            
+                                handleDelete(deleteConfirmStep.image.id);
+                                setDeleteConfirmStep(null);
+                              }
                             }}
                           />
                           <div className="flex gap-2">
-                            <Button variant="outline" onClick={() => ">
+                            <Button variant="outline" onClick={() => setDeleteConfirmStep(null)} className="flex-1">
                               Hủy
-                           
-                          /div>
-                        >
+                            </Button>
+                          </div>
+                        </>
                       )}
                     </div>
                   )}
@@ -1054,22 +1014,22 @@ h
               </Dialog>
             </TabsContent>
 
-            <TabsConte
-              <A
+            <TabsContent value="albums">
+              <AlbumManager />
             </TabsContent>
           </Tabs>
-        </iv>
+        </div>
       </div>
-
+    </div>
   );
 }
 
-export default fu
+export default function GalleryPage() {
   return (
     <AuthGuard>
-      <Navar />
-    
- >
-uthGuard>
+      <Navbar />
+      <GalleryContent />
+      <Footer />
+    </AuthGuard>
   );
 }
