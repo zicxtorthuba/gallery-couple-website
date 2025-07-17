@@ -62,6 +62,7 @@ export default function BlogPostPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [likes, setLikes] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isLikeProcessing, setIsLikeProcessing] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
