@@ -19,7 +19,7 @@ export function Hero() {
         <div
           className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('https://res.cloudinary.com/djdns6fly/image/upload/v1752687360/075418b0-0350-42c4-a13a-74f6971b371b_nh7muf.jpg')"
+            backgroundImage: "url('https://res.cloudinary.com/du9fgslde/image/upload/v1752731993/hgvl7mho4k53nznjotkg.jpg')"
           }}
         />
         {/* Image Overlay for better text readability */}

@@ -112,7 +112,7 @@ export default function AlbumViewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F5DC]">
+      <div className="min-h-screen bg-[#c4d1a0]">
         <Navbar />
         <div className="pt-20 pb-16 flex justify-center items-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#93E1D8]"></div>
@@ -124,7 +124,7 @@ export default function AlbumViewPage() {
 
   if (!album) {
     return (
-      <div className="min-h-screen bg-[#F5F5DC]">
+      <div className="min-h-screen bg-[#c4d1a0]">
         <Navbar />
         <div className="pt-20 pb-16">
           <div className="container mx-auto px-4 text-center">
@@ -142,7 +142,7 @@ export default function AlbumViewPage() {
   // Check if user can view this album
   if (!album.isPublic && !isOwner) {
     return (
-      <div className="min-h-screen bg-[#F5F5DC]">
+      <div className="min-h-screen bg-[#c4d1a0]">
         <Navbar />
         <div className="pt-20 pb-16">
           <div className="container mx-auto px-4 text-center">
@@ -166,7 +166,7 @@ export default function AlbumViewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5DC]">
+    <div className="min-h-screen bg-[#c4d1a0]">
       <Navbar />
       
       <div className="pt-20 pb-16">

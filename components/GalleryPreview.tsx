@@ -32,7 +32,7 @@ export function GalleryPreview() {
         <div className="text-center mb-16">
           <h2 className="font-cormorant text-4xl md:text-5xl font-light mb-4">Lưu dấu</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Lưu lại những điều iu dấu.
+            Lưu lại những điều yêu dấu.
           </p>
         </div>
 

@@ -441,7 +441,7 @@ function GalleryContent() {
   const categoriesWithAll = ['all', ...categories];
 
   return (
-    <div className="min-h-screen bg-[#7FFFD4]">
+    <div className="min-h-screen bg-[#c4d1a0]">
       <div className="pt-20 pb-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12 bg-white/95 backdrop-blur-sm rounded-xl p-8 shadow-lg border-white/50">
