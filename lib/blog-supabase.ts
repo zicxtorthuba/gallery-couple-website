@@ -460,20 +460,97 @@ export const updateTagCounts = async (): Promise<void> => {
 
 export const updateBlogLikes = async (postId: string, increment: boolean): Promise<boolean> => {
   try {
-    console.log('Calling updateBlogLikes with:', { postId, increment });
-    
-    const { data, error } = await supabase.rpc('update_blog_post_likes', {
-      post_id: postId,
-      increment_likes: increment
-    });
-
-    if (error) {
-      console.error('Error updating blog post likes:', error);
+    const user = await getCurrentUser();
+    if (!user) {
+      console.error('User not authenticated');
       return false;
     }
-
-    console.log('updateBlogLikes result:', data);
-    return true;
+    
+    console.log('Updating likes for post:', postId, 'User:', user.id, 'Increment:', increment);
+    
+    // Check if user has already liked this post
+    const { data: existingLike, error: checkError } = await supabase
+      .from('blog_likes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('post_id', postId);
+      
+    if (checkError) {
+      console.error('Error checking if post is liked:', checkError);
+      return false;
+    }
+    
+    const alreadyLiked = existingLike && existingLike.length > 0;
+    console.log('Already liked:', alreadyLiked);
+    
+    // Get current likes count
+    const { data: postData, error: postError } = await supabase
+      .from('blog_posts')
+      .select('likes')
+      .eq('id', postId)
+      .single();
+      
+    if (postError) {
+      console.error('Error getting post likes count:', postError);
+      return false;
+    }
+    
+    const currentLikes = postData.likes || 0;
+    
+    if (increment && !alreadyLiked) {
+      // Add like
+      const { error: insertError } = await supabase
+        .from('blog_likes')
+        .insert({ user_id: user.id, post_id: postId });
+        
+      if (insertError) {
+        console.error('Error adding like:', insertError);
+        return false;
+      }
+      
+      // Increment post likes count
+      const { error: updateError } = await supabase
+        .from('blog_posts')
+        .update({ likes: currentLikes + 1 })
+        .eq('id', postId);
+        
+      if (updateError) {
+        console.error('Error incrementing likes count:', updateError);
+        return false;
+      }
+      
+      console.log('Successfully added like');
+      return true;
+    } else if (!increment && alreadyLiked) {
+      // Remove like
+      const { error: deleteError } = await supabase
+        .from('blog_likes')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('post_id', postId);
+        
+      if (deleteError) {
+        console.error('Error removing like:', deleteError);
+        return false;
+      }
+      
+      // Decrement post likes count
+      const { error: updateError } = await supabase
+        .from('blog_posts')
+        .update({ likes: Math.max(currentLikes - 1, 0) })
+        .eq('id', postId);
+        
+      if (updateError) {
+        console.error('Error decrementing likes count:', updateError);
+        return false;
+      }
+      
+      console.log('Successfully removed like');
+      return true;
+    }
+    
+    console.log('No change needed');
+    return false;
   } catch (error) {
     console.error('Error in updateBlogLikes:', error);
     return false;
