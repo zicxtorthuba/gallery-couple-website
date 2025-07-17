@@ -72,6 +72,7 @@ export default function BlogPostPage() {
   useEffect(() => {
     if (user && post) {
       checkIfSaved();
+      checkIfLiked();
     }
   }, [user, post]);
 
@@ -88,6 +89,23 @@ export default function BlogPostPage() {
       setIsSaved(saved);
     } catch (error) {
       console.error('Error checking save status:', error);
+    }
+  };
+  
+  const checkIfLiked = async () => {
+    if (!user || !post) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('blog_likes')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('post_id', post.id)
+        .single();
+        
+      setIsLiked(!!data);
+    } catch (error) {
+      console.error('Error checking like status:', error);
     }
   };
 
@@ -130,8 +148,8 @@ export default function BlogPostPage() {
   };
 
   const handleLike = async () => {
-    // Don't allow liking if not logged in
-    if (!user) return;
+    // Don't allow liking if not logged in or if post is null
+    if (!user || !post) return;
     
     try {
       const newIsLiked = !isLiked;
