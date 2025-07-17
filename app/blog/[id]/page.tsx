@@ -100,10 +100,10 @@ export default function BlogPostPage() {
         .from('blog_likes')
         .select('*')
         .eq('user_id', user.id)
-        .eq('post_id', post.id)
-        .single();
+        .eq('post_id', post.id);
         
-      setIsLiked(!!data);
+      // If data exists and has at least one record, the user has liked the post
+      setIsLiked(data && data.length > 0);
     } catch (error) {
       console.error('Error checking like status:', error);
     }
@@ -124,10 +124,9 @@ export default function BlogPostPage() {
             .from('blog_likes')
             .select('*')
             .eq('user_id', user.id)
-            .eq('post_id', foundPost.id)
-            .single();
+            .eq('post_id', foundPost.id);
             
-          setIsLiked(!!data);
+          setIsLiked(data && data.length > 0);
         }
         
         // Get related posts (same tags, excluding current post)
