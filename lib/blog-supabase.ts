@@ -458,6 +458,25 @@ export const updateTagCounts = async (): Promise<void> => {
   }
 };
 
+export const updateBlogLikes = async (postId: string, increment: boolean): Promise<boolean> => {
+  try {
+    const { error } = await supabase.rpc('update_blog_post_likes', {
+      post_id: postId,
+      increment_likes: increment
+    });
+
+    if (error) {
+      console.error('Error updating blog post likes:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in updateBlogLikes:', error);
+    return false;
+  }
+};
+
 // Utility functions
 const generateExcerpt = (content: string, maxLength: number = 150): string => {
   const plainText = content.replace(/<[^>]*>/g, '').replace(/\n/g, ' ');

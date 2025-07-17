@@ -24,12 +24,13 @@ import {
   Eye,
   Palette
 } from 'lucide-react';
-import { BlogPost, getBlogPost, getBlogPosts } from '@/lib/blog-supabase';
+import { BlogPost, getBlogPost, getBlogPosts, updateBlogLikes } from '@/lib/blog-supabase';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CommentSection } from '@/components/ui/comment-section';
 import { addToFavorites, removeFromFavorites, isFavorite } from '@/lib/favorites-supabase';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 const iconMap: Record<string, any> = {
   FileText, Calendar, Clock, User, Tag, Eye, Palette
@@ -99,6 +100,18 @@ export default function BlogPostPage() {
         setPost(foundPost);
         setLikes(foundPost.likes);
         
+        // Check if user has liked this post
+        if (user) {
+          const { data, error } = await supabase
+            .from('blog_likes')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('post_id', foundPost.id)
+            .single();
+            
+          setIsLiked(!!data);
+        }
+        
         // Get related posts (same tags, excluding current post)
         const allPosts = await getBlogPosts(false); // Only published posts
         const related = allPosts
@@ -116,9 +129,21 @@ export default function BlogPostPage() {
     }
   };
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(prev => isLiked ? prev - 1 : prev + 1);
+  const handleLike = async () => {
+    // Don't allow liking if not logged in
+    if (!user) return;
+    
+    try {
+      const newIsLiked = !isLiked;
+      const success = await updateBlogLikes(post.id, newIsLiked);
+      
+      if (success) {
+        setIsLiked(newIsLiked);
+        setLikes(prev => newIsLiked ? prev + 1 : prev - 1);
+      }
+    } catch (error) {
+      console.error('Error updating like status:', error);
+    }
   };
 
   const handleSave = async () => {
