@@ -460,7 +460,9 @@ export const updateTagCounts = async (): Promise<void> => {
 
 export const updateBlogLikes = async (postId: string, increment: boolean): Promise<boolean> => {
   try {
-    const { error } = await supabase.rpc('update_blog_post_likes', {
+    console.log('Calling updateBlogLikes with:', { postId, increment });
+    
+    const { data, error } = await supabase.rpc('update_blog_post_likes', {
       post_id: postId,
       increment_likes: increment
     });
@@ -470,6 +472,7 @@ export const updateBlogLikes = async (postId: string, increment: boolean): Promi
       return false;
     }
 
+    console.log('updateBlogLikes result:', data);
     return true;
   } catch (error) {
     console.error('Error in updateBlogLikes:', error);

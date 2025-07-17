@@ -103,7 +103,7 @@ export default function BlogPostPage() {
         .eq('post_id', post.id);
         
       // If data exists and has at least one record, the user has liked the post
-      setIsLiked(data && data.length > 0);
+      setIsLiked(Boolean(data && data.length > 0));
     } catch (error) {
       console.error('Error checking like status:', error);
     }
@@ -126,7 +126,7 @@ export default function BlogPostPage() {
             .eq('user_id', user.id)
             .eq('post_id', foundPost.id);
             
-          setIsLiked(data && data.length > 0);
+          setIsLiked(Boolean(data && data.length > 0));
         }
         
         // Get related posts (same tags, excluding current post)
@@ -148,15 +148,29 @@ export default function BlogPostPage() {
 
   const handleLike = async () => {
     // Don't allow liking if not logged in or if post is null
-    if (!user || !post) return;
+    if (!user || !post) {
+      console.log('Cannot like: user or post is null', { user: !!user, post: !!post });
+      return;
+    }
     
     try {
+      console.log('Attempting to like/unlike post', { 
+        postId: post.id, 
+        userId: user.id,
+        currentLikeStatus: isLiked 
+      });
+      
       const newIsLiked = !isLiked;
       const success = await updateBlogLikes(post.id, newIsLiked);
+      
+      console.log('Like update result:', { success, newIsLiked });
       
       if (success) {
         setIsLiked(newIsLiked);
         setLikes(prev => newIsLiked ? prev + 1 : prev - 1);
+        console.log('Updated UI state:', { isLiked: newIsLiked, likes });
+      } else {
+        console.log('Failed to update like status');
       }
     } catch (error) {
       console.error('Error updating like status:', error);
