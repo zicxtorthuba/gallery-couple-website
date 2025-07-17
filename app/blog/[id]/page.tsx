@@ -148,17 +148,23 @@ export default function BlogPostPage() {
   };
 
   const handleLike = async () => {
-    // Don't allow liking if not logged in or if post is null
-    if (!user || !post) {
-      console.log('Cannot like: user or post is null', { user: !!user, post: !!post });
+    // Don't allow liking if already processing, not logged in, or post is null
+    if (isLikeProcessing || !user || !post) {
+      console.log('Cannot like: processing or user/post is null', { 
+        isLikeProcessing, 
+        user: !!user, 
+        post: !!post 
+      });
       return;
     }
     
     try {
+      setIsLikeProcessing(true);
       console.log('Attempting to like/unlike post', { 
         postId: post.id, 
         userId: user.id,
-        currentLikeStatus: isLiked 
+        currentLikeStatus: isLiked,
+        currentLikes: likes
       });
       
       const newIsLiked = !isLiked;
@@ -168,13 +174,30 @@ export default function BlogPostPage() {
       
       if (success) {
         setIsLiked(newIsLiked);
-        setLikes(prev => newIsLiked ? prev + 1 : prev - 1);
-        console.log('Updated UI state:', { isLiked: newIsLiked, likes });
+        setLikes(prev => {
+          const newCount = newIsLiked ? prev + 1 : Math.max(prev - 1, 0);
+          console.log('Updating likes count:', { prev, newCount, newIsLiked });
+          return newCount;
+        });
       } else {
-        console.log('Failed to update like status');
+        console.log('Failed to update like status - refreshing post data');
+        // If the update failed, refresh the post data to get the current state
+        const refreshedPost = await getBlogPost(post.id);
+        if (refreshedPost) {
+          setLikes(refreshedPost.likes);
+          // Re-check if user has liked this post
+          const { data } = await supabase
+            .from('blog_likes')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('post_id', post.id);
+          setIsLiked(Boolean(data && data.length > 0));
+        }
       }
     } catch (error) {
       console.error('Error updating like status:', error);
+    } finally {
+      setIsLikeProcessing(false);
     }
   };
 
@@ -300,6 +323,7 @@ export default function BlogPostPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleLike}
+                disabled={isLikeProcessing}
                 className={`gap-2 ${isLiked ? 'text-red-500 border-red-200' : ''}`}
               >
                 <HeartIcon className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
@@ -376,6 +400,7 @@ export default function BlogPostPage() {
               <Button
                 variant="outline"
                 onClick={handleLike}
+                disabled={isLikeProcessing}
                 className={`gap-2 ${isLiked ? 'text-red-500 border-red-200' : ''}`}
               >
                 <HeartIcon className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
